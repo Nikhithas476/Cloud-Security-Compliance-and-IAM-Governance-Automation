@@ -1,0 +1,106 @@
+# Environment variables and local configuration
+.env
+.env.*
+!.env.example
+config/*.local.yaml
+config/*.local.yml
+config/secrets*.yaml
+config/secrets*.yml
+
+# Cloud credentials and CLI state
+.aws/
+.azure/
+credentials
+credentials.json
+aws_credentials*
+azure_credentials*
+service-account*.json
+service_principal*.json
+
+# Secrets, API keys, passwords, tokens, keys, and certificates
+*.secret
+*.secrets
+*.key
+*.keys
+*.pem
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.crt
+*.cer
+*.der
+*.csr
+id_rsa*
+id_dsa*
+id_ecdsa*
+id_ed25519*
+*.kdbx
+
+# Terraform state and sensitive variable files
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+crash.log
+crash.*.log
+.terraformrc
+terraform.rc
+
+# Python environments, caches, and build output
+.venv/
+venv/
+env/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# IDE and operating-system files
+.idea/
+.vscode/
+*.swp
+*.swo
+*.code-workspace
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs, temporary files, and local databases
+*.log
+logs/
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.orig
+*.sqlite
+*.sqlite3
+
+# Generated reports and real cloud scan results
+reports/*
+!reports/.gitkeep
+scan-results/
+scan_results/
+cloud-scan-results/
+cloud_scan_results/
+findings/
+artifacts/
+
+# Serverless local tooling
+.aws-sam/
+.serverless/
+.func/
+local.settings.json
+

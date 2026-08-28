@@ -1,0 +1,9 @@
+application:
+  name: Cloud Security Compliance and IAM Governance Automation
+  environment: development
+logging:
+  level: INFO
+cloud:
+  aws_region: us-east-1
+  azure_subscription_id: ""
+
