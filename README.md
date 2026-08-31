@@ -41,6 +41,7 @@ ruff check .
 ## Project layout
 
 - `src/` — application package, configuration, logging, and API
+- `src/cloud_security_governance/models/` — validated, JSON-serializable domain models
 - `tests/` — unit and API tests
 - `config/` — safe default YAML configuration
 - `docs/` — architecture and development documentation
@@ -54,3 +55,8 @@ ruff check .
 
 Never commit credentials or scan output. Read [SECURITY.md](SECURITY.md) before contributing.
 
+## Domain models
+
+Core provider-neutral models are exported from `cloud_security_governance.models`. They use strict
+Pydantic validation and support `model_dump_json()` and `model_validate_json()` for JSON round
+trips. The foundation includes no AWS or Azure API calls.
