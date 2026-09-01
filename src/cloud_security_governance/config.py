@@ -22,6 +22,8 @@ class Settings(BaseModel):
     app_env: str = "development"
     log_level: str = "INFO"
     aws_region: str = "us-east-1"
+    aws_profile: str | None = None
+    aws_role_arn: str | None = None
     azure_subscription_id: str = ""
     config_file: Path = Field(default=Path("config/default.yaml"), exclude=True)
 
@@ -43,6 +45,8 @@ def _yaml_values(path: Path) -> dict[str, Any]:
         "app_env": application.get("environment"),
         "log_level": logging_config.get("level"),
         "aws_region": cloud.get("aws_region"),
+        "aws_profile": cloud.get("aws_profile"),
+        "aws_role_arn": cloud.get("aws_role_arn"),
         "azure_subscription_id": cloud.get("azure_subscription_id"),
     }
 
@@ -58,6 +62,8 @@ def get_settings() -> Settings:
         "app_env": os.getenv("APP_ENV"),
         "log_level": os.getenv("LOG_LEVEL"),
         "aws_region": os.getenv("AWS_REGION"),
+        "aws_profile": os.getenv("AWS_PROFILE"),
+        "aws_role_arn": os.getenv("AWS_ROLE_ARN"),
         "azure_subscription_id": os.getenv("AZURE_SUBSCRIPTION_ID"),
     }
     values.update({key: value for key, value in environment_values.items() if value is not None})
@@ -66,4 +72,3 @@ def get_settings() -> Settings:
         return Settings.model_validate(values)
     except ValidationError as exc:
         raise ConfigurationError("Application configuration is invalid") from exc
-

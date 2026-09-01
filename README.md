@@ -60,3 +60,11 @@ Never commit credentials or scan output. Read [SECURITY.md](SECURITY.md) before 
 Core provider-neutral models are exported from `cloud_security_governance.models`. They use strict
 Pydantic validation and support `model_dump_json()` and `model_validate_json()` for JSON round
 trips. The foundation includes no AWS or Azure API calls.
+
+## AWS authentication foundation
+
+`AWSScanner` uses boto3's standard credential resolution chain. It supports `AWS_PROFILE`,
+`AWS_REGION`, and optional `AWS_ROLE_ARN` role assumption. Credentials must come from the AWS CLI,
+environment, workload identity, instance/container role, or another standard boto3 provider; never
+put credential values in this repository. Only the read-only STS identity operation is available.
+Resource scanning is intentionally not implemented yet.
