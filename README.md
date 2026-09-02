@@ -68,3 +68,10 @@ trips. The foundation includes no AWS or Azure API calls.
 environment, workload identity, instance/container role, or another standard boto3 provider; never
 put credential values in this repository. Only the read-only STS identity operation is available.
 Resource scanning is intentionally not implemented yet.
+
+### IAM security scanning
+
+`AWSIAMScanner` performs read-only IAM checks for unrestricted policy actions/resources, users
+without MFA, access keys unused for more than 90 days, and root-account access keys. It evaluates
+customer-managed policies and inline user, role, and group policies. Findings use the common model
+and explicitly indicate whether remediation is available. The scanner never changes IAM resources.

@@ -25,5 +25,9 @@ class AWSAuthenticationError(AWSScannerError):
     """Raised when AWS credentials or STS authentication cannot be validated."""
 
 
+class AWSScanError(AWSScannerError):
+    """Raised when a read-only AWS security scan cannot be completed."""
+
+
 class GovernanceError(CloudSecurityError):
     """Raised when an IAM governance operation fails."""

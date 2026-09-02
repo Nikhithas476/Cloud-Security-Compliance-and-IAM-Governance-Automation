@@ -194,6 +194,7 @@ class Finding(SecurityModel):
     title: ShortText
     description: LongText
     severity: Severity
+    remediation_available: bool = False
     status: FindingStatus = FindingStatus.OPEN
     evidence: dict[str, Any] = Field(default_factory=dict)
     detected_at: datetime = Field(default_factory=_utc_now)
