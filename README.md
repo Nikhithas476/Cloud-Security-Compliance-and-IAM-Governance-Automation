@@ -75,3 +75,11 @@ Resource scanning is intentionally not implemented yet.
 without MFA, access keys unused for more than 90 days, and root-account access keys. It evaluates
 customer-managed policies and inline user, role, and group policies. Findings use the common model
 and explicitly indicate whether remediation is available. The scanner never changes IAM resources.
+
+### Encryption security scanning
+
+`AWSEncryptionScanner` performs read-only checks for S3 default server-side encryption and EBS
+volume encryption. Enabled rule IDs come from `cloud.aws_encryption_rules` in the YAML configuration
+or can be supplied directly to the scanner. Both compliant and non-compliant resources contribute
+to the scan count, while only non-compliant resources produce common `Finding` objects. The scanner
+never changes S3 buckets or EBS volumes.

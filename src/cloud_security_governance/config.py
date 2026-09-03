@@ -24,6 +24,12 @@ class Settings(BaseModel):
     aws_region: str = "us-east-1"
     aws_profile: str | None = None
     aws_role_arn: str | None = None
+    aws_encryption_rules: list[str] = Field(
+        default_factory=lambda: [
+            "aws.s3.bucket.encryption-enabled",
+            "aws.ec2.ebs.volume-encryption-enabled",
+        ]
+    )
     azure_subscription_id: str = ""
     config_file: Path = Field(default=Path("config/default.yaml"), exclude=True)
 
@@ -47,6 +53,7 @@ def _yaml_values(path: Path) -> dict[str, Any]:
         "aws_region": cloud.get("aws_region"),
         "aws_profile": cloud.get("aws_profile"),
         "aws_role_arn": cloud.get("aws_role_arn"),
+        "aws_encryption_rules": cloud.get("aws_encryption_rules"),
         "azure_subscription_id": cloud.get("azure_subscription_id"),
     }
 

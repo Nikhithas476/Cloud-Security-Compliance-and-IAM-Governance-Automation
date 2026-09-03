@@ -7,4 +7,7 @@ cloud:
   aws_region: us-east-1
   aws_profile:
   aws_role_arn:
+  aws_encryption_rules:
+    - aws.s3.bucket.encryption-enabled
+    - aws.ec2.ebs.volume-encryption-enabled
   azure_subscription_id: ""

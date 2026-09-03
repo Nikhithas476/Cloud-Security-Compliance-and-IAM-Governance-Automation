@@ -35,4 +35,8 @@ def test_aws_authentication_environment_settings(monkeypatch, tmp_path: Path) ->
     assert settings.aws_region == "eu-central-1"
     assert settings.aws_profile == "security-audit"
     assert settings.aws_role_arn == "arn:aws:iam::123456789012:role/SecurityAuditRole"
+    assert settings.aws_encryption_rules == [
+        "aws.s3.bucket.encryption-enabled",
+        "aws.ec2.ebs.volume-encryption-enabled",
+    ]
     get_settings.cache_clear()
