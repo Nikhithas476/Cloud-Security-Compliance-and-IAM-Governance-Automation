@@ -39,4 +39,5 @@ def test_aws_authentication_environment_settings(monkeypatch, tmp_path: Path) ->
         "aws.s3.bucket.encryption-enabled",
         "aws.ec2.ebs.volume-encryption-enabled",
     ]
+    assert settings.aws_config_rule_names == []
     get_settings.cache_clear()

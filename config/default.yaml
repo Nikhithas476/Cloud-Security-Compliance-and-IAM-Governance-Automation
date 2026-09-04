@@ -10,4 +10,6 @@ cloud:
   aws_encryption_rules:
     - aws.s3.bucket.encryption-enabled
     - aws.ec2.ebs.volume-encryption-enabled
+  # Add only the AWS Config rules whose compliance state should be retrieved.
+  aws_config_rule_names: []
   azure_subscription_id: ""

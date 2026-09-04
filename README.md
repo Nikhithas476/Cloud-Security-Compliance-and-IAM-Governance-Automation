@@ -83,3 +83,10 @@ volume encryption. Enabled rule IDs come from `cloud.aws_encryption_rules` in th
 or can be supplied directly to the scanner. Both compliant and non-compliant resources contribute
 to the scan count, while only non-compliant resources produce common `Finding` objects. The scanner
 never changes S3 buckets or EBS volumes.
+
+### CloudTrail and AWS Config scanning
+
+`AWSCloudTrailConfigScanner` verifies that a CloudTrail trail exists and is logging, and that an
+AWS Config configuration recorder exists and is recording. It also retrieves compliance summaries
+for only the rule names selected through `cloud.aws_config_rule_names`. Non-compliant results become
+common findings. The scanner uses describe/get/list operations only and never changes either service.

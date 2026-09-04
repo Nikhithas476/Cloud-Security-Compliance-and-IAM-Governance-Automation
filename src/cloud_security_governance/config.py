@@ -30,6 +30,7 @@ class Settings(BaseModel):
             "aws.ec2.ebs.volume-encryption-enabled",
         ]
     )
+    aws_config_rule_names: list[str] = Field(default_factory=list)
     azure_subscription_id: str = ""
     config_file: Path = Field(default=Path("config/default.yaml"), exclude=True)
 
@@ -54,6 +55,7 @@ def _yaml_values(path: Path) -> dict[str, Any]:
         "aws_profile": cloud.get("aws_profile"),
         "aws_role_arn": cloud.get("aws_role_arn"),
         "aws_encryption_rules": cloud.get("aws_encryption_rules"),
+        "aws_config_rule_names": cloud.get("aws_config_rule_names"),
         "azure_subscription_id": cloud.get("azure_subscription_id"),
     }
 
