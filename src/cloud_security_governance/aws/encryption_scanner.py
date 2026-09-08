@@ -47,6 +47,9 @@ class AWSEncryptionScanner(AWSScanner):
         enabled_rules: Collection[str] | None = None,
         session_factory: Callable[..., Session] = boto3.Session,
         clock: Callable[[], datetime] = _utc_now,
+        _shared_session: Session | None = None,
+        _shared_sts: Any | None = None,
+        _caller_identity: Any | None = None,
     ) -> None:
         self.enabled_rules = self._validate_enabled_rules(enabled_rules)
         self._clock = clock
@@ -55,6 +58,9 @@ class AWSEncryptionScanner(AWSScanner):
             region=region,
             role_arn=role_arn,
             session_factory=session_factory,
+            _shared_session=_shared_session,
+            _shared_sts=_shared_sts,
+            _caller_identity=_caller_identity,
         )
         session_region = getattr(self._session, "region_name", None)
         self._effective_region = self.region or (

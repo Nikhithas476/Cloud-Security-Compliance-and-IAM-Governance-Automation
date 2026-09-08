@@ -90,3 +90,9 @@ never changes S3 buckets or EBS volumes.
 AWS Config configuration recorder exists and is recording. It also retrieves compliance summaries
 for only the rule names selected through `cloud.aws_config_rule_names`. Non-compliant results become
 common findings. The scanner uses describe/get/list operations only and never changes either service.
+
+### Complete AWS scanning pipeline
+
+Calling `AWSScanner.scan()` runs IAM, encryption, CloudTrail, and AWS Config checks through one
+authenticated boto3 session. It returns one `ScanResult` containing a single normalized findings
+list plus scan ID, account ID, UTC timestamps, duration, resource count, finding count, and errors.

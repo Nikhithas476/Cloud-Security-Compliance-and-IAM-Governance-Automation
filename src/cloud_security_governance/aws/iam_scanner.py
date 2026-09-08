@@ -46,6 +46,9 @@ class AWSIAMScanner(AWSScanner):
         stale_key_days: int = 90,
         session_factory: Callable[..., Session] = boto3.Session,
         clock: Callable[[], datetime] = _utc_now,
+        _shared_session: Session | None = None,
+        _shared_sts: Any | None = None,
+        _caller_identity: Any | None = None,
     ) -> None:
         if stale_key_days <= 0:
             raise AWSConfigurationError("stale_key_days must be greater than zero")
@@ -56,6 +59,9 @@ class AWSIAMScanner(AWSScanner):
             region=region,
             role_arn=role_arn,
             session_factory=session_factory,
+            _shared_session=_shared_session,
+            _shared_sts=_shared_sts,
+            _caller_identity=_caller_identity,
         )
         try:
             self._iam = self._session.client("iam", region_name=self.region)

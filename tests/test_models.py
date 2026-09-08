@@ -364,3 +364,33 @@ def test_scan_result_rejects_inconsistent_resource_count(
             resources_scanned=0,
             findings=[finding],
         )
+
+
+def test_scan_result_calculates_and_validates_metadata(aws_account: CloudAccount) -> None:
+    result = ScanResult(
+        account=aws_account,
+        started_at=NOW,
+        completed_at=NOW + timedelta(seconds=2.5),
+        resources_scanned=0,
+    )
+
+    assert result.duration_seconds == 2.5
+    assert result.findings_count == 0
+
+    with pytest.raises(ValidationError, match="duration_seconds must match"):
+        ScanResult(
+            account=aws_account,
+            started_at=NOW,
+            completed_at=NOW + timedelta(seconds=2.5),
+            resources_scanned=0,
+            duration_seconds=1,
+        )
+
+    with pytest.raises(ValidationError, match="findings_count must match"):
+        ScanResult(
+            account=aws_account,
+            started_at=NOW,
+            completed_at=NOW,
+            resources_scanned=0,
+            findings_count=1,
+        )

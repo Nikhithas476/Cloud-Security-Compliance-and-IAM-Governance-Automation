@@ -200,14 +200,3 @@ def test_incomplete_assume_role_response_is_rejected() -> None:
             role_arn=ROLE_ARN,
             session_factory=MagicMock(return_value=source_session),
         )
-
-
-def test_scan_is_an_explicit_non_operational_placeholder() -> None:
-    scanner, sts = scanner_with_identity()
-
-    with pytest.raises(NotImplementedError, match="not implemented yet"):
-        scanner.scan()
-
-    sts.get_caller_identity.assert_not_called()
-    sts.assume_role.assert_not_called()
-

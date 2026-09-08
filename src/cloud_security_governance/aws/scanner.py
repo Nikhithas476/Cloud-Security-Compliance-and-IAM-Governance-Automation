@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import os
 import re
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Collection, Mapping
+from datetime import UTC, datetime
 from typing import Any, NoReturn, TypedDict
 
 import boto3
@@ -21,7 +22,9 @@ from botocore.exceptions import (
 from cloud_security_governance.exceptions import (
     AWSAuthenticationError,
     AWSConfigurationError,
+    AWSScanError,
 )
+from cloud_security_governance.models import CloudAccount, CloudProvider, ScanResult
 
 _AWS_ACCOUNT_ID_PATTERN = re.compile(r"^\d{12}$")
 _AWS_REGION_PATTERN = re.compile(r"^[a-z]{2,}(?:-[a-z0-9]+)+-\d+$")
@@ -29,6 +32,10 @@ _AWS_ROLE_ARN_PATTERN = re.compile(
     r"^arn:aws(?:-[a-z0-9-]+)?:iam::\d{12}:role/[A-Za-z0-9+=,.@_/-]{1,512}$"
 )
 _ROLE_SESSION_NAME = "cloud-security-governance"
+
+
+def _utc_now() -> datetime:
+    return datetime.now(UTC)
 
 
 class AWSCallerIdentity(TypedDict):
@@ -53,15 +60,27 @@ class AWSScanner:
         profile: str | None = None,
         region: str | None = None,
         role_arn: str | None = None,
+        encryption_rule_ids: Collection[str] | None = None,
+        config_rule_names: Collection[str] | None = None,
+        stale_key_days: int = 90,
         session_factory: Callable[..., Session] = boto3.Session,
+        scan_clock: Callable[[], datetime] = _utc_now,
+        _shared_session: Session | None = None,
+        _shared_sts: Any | None = None,
+        _caller_identity: AWSCallerIdentity | None = None,
     ) -> None:
         self.profile = self._resolve_optional_value(profile, "AWS_PROFILE")
         self.region = self._resolve_region(region)
         self.role_arn = self._resolve_optional_value(role_arn, "AWS_ROLE_ARN")
         self._validate_configuration()
+        self._pipeline_encryption_rule_ids = encryption_rule_ids
+        self._pipeline_config_rule_names = config_rule_names
+        self._pipeline_stale_key_days = stale_key_days
+        self._scan_clock = scan_clock
         self._session_factory = session_factory
-        self._session = self._create_session()
-        self._sts = self._create_sts_client(self._session)
+        self._session = _shared_session or self._create_session()
+        self._sts = _shared_sts or self._create_sts_client(self._session)
+        self._caller_identity = _caller_identity
 
     @staticmethod
     def _resolve_optional_value(explicit_value: str | None, variable: str) -> str | None:
@@ -158,6 +177,8 @@ class AWSScanner:
     def get_caller_identity(self) -> AWSCallerIdentity:
         """Return the authenticated STS identity using a non-destructive API call."""
 
+        if self._caller_identity is not None:
+            return self._caller_identity.copy()
         try:
             response = self._sts.get_caller_identity()
         except (NoCredentialsError, PartialCredentialsError) as exc:
@@ -191,7 +212,72 @@ class AWSScanner:
 
         return self.get_caller_identity()["Account"]
 
-    def scan(self) -> NoReturn:
-        """Reserve the scanning entry point without performing cloud operations."""
+    def scan(self) -> ScanResult:
+        """Run every AWS scanner and return one normalized aggregate result."""
 
-        raise NotImplementedError("AWS resource scanning is not implemented yet")
+        # Local imports avoid module cycles because each specialized scanner subclasses this class.
+        from cloud_security_governance.aws.audit_services_scanner import (
+            AWSCloudTrailConfigScanner,
+        )
+        from cloud_security_governance.aws.encryption_scanner import AWSEncryptionScanner
+        from cloud_security_governance.aws.iam_scanner import AWSIAMScanner
+
+        started_at = self._normalize_scan_time(self._scan_clock())
+        identity = self.get_caller_identity()
+        account_id = identity["Account"]
+        shared_options = {
+            "region": self.region,
+            "session_factory": self._session_factory,
+            "_shared_session": self._session,
+            "_shared_sts": self._sts,
+            "_caller_identity": identity,
+        }
+        scanner_clock = lambda: started_at
+        scanners = (
+            AWSIAMScanner(
+                stale_key_days=self._pipeline_stale_key_days,
+                clock=scanner_clock,
+                **shared_options,
+            ),
+            AWSEncryptionScanner(
+                enabled_rules=self._pipeline_encryption_rule_ids,
+                clock=scanner_clock,
+                **shared_options,
+            ),
+            AWSCloudTrailConfigScanner(
+                config_rule_names=self._pipeline_config_rule_names,
+                clock=scanner_clock,
+                **shared_options,
+            ),
+        )
+
+        findings = []
+        errors: list[str] = []
+        resources_scanned = 0
+        for scanner in scanners:
+            result = scanner.scan()
+            if result.account.account_id != account_id:
+                raise AWSScanError("An AWS scanner returned a result for a different account")
+            findings.extend(result.findings)
+            errors.extend(result.errors)
+            resources_scanned += result.resources_scanned
+
+        completed_at = max(self._normalize_scan_time(self._scan_clock()), started_at)
+        return ScanResult(
+            account=CloudAccount(
+                account_id=account_id,
+                provider=CloudProvider.AWS,
+                display_name=f"AWS account {account_id}",
+            ),
+            started_at=started_at,
+            completed_at=completed_at,
+            resources_scanned=resources_scanned,
+            findings=findings,
+            errors=errors,
+        )
+
+    @staticmethod
+    def _normalize_scan_time(value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise AWSConfigurationError("AWS scan timestamps must include timezone information")
+        return value.astimezone(UTC)

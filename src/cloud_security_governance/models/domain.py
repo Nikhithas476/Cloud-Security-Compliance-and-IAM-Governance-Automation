@@ -279,6 +279,8 @@ class ScanResult(SecurityModel):
     completed_at: datetime
     resources_scanned: int = Field(ge=0)
     findings: list[Finding] = Field(default_factory=list)
+    duration_seconds: float | None = Field(default=None, ge=0)
+    findings_count: int | None = Field(default=None, ge=0)
     errors: list[ShortText] = Field(default_factory=list, max_length=1_000)
 
     @field_validator("started_at", "completed_at")
@@ -290,6 +292,18 @@ class ScanResult(SecurityModel):
     def validate_result_consistency(self) -> Self:
         if self.completed_at < self.started_at:
             raise ValueError("completed_at must not precede started_at")
+
+        expected_duration = (self.completed_at - self.started_at).total_seconds()
+        if self.duration_seconds is None:
+            object.__setattr__(self, "duration_seconds", expected_duration)
+        elif abs(self.duration_seconds - expected_duration) > 0.000001:
+            raise ValueError("duration_seconds must match the scan timestamps")
+
+        expected_findings = len(self.findings)
+        if self.findings_count is None:
+            object.__setattr__(self, "findings_count", expected_findings)
+        elif self.findings_count != expected_findings:
+            raise ValueError("findings_count must match the findings list")
 
         resource_ids: set[str] = set()
         for finding in self.findings:
