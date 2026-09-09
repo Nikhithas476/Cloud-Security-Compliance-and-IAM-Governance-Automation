@@ -96,3 +96,10 @@ common findings. The scanner uses describe/get/list operations only and never ch
 Calling `AWSScanner.scan()` runs IAM, encryption, CloudTrail, and AWS Config checks through one
 authenticated boto3 session. It returns one `ScanResult` containing a single normalized findings
 list plus scan ID, account ID, UTC timestamps, duration, resource count, finding count, and errors.
+
+## Azure authentication foundation
+
+`AzureScanner` uses `DefaultAzureCredential` and a validated `AZURE_SUBSCRIPTION_ID`. Authentication
+validation requests an Azure Resource Manager token but never exposes or stores its value. Configure
+identity through the standard Azure SDK environment, workload identity, managed identity, Azure CLI,
+or developer credential chain. Azure resource scanning is intentionally not implemented yet.

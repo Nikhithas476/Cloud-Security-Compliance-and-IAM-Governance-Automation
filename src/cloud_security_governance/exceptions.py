@@ -29,5 +29,17 @@ class AWSScanError(AWSScannerError):
     """Raised when a read-only AWS security scan cannot be completed."""
 
 
+class AzureScannerError(CloudProviderError):
+    """Base exception for expected Azure scanner failures."""
+
+
+class AzureConfigurationError(AzureScannerError):
+    """Raised when Azure scanner configuration is invalid."""
+
+
+class AzureAuthenticationError(AzureScannerError):
+    """Raised when Azure authentication cannot be validated."""
+
+
 class GovernanceError(CloudSecurityError):
     """Raised when an IAM governance operation fails."""
