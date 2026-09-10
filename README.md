@@ -103,3 +103,10 @@ list plus scan ID, account ID, UTC timestamps, duration, resource count, finding
 validation requests an Azure Resource Manager token but never exposes or stores its value. Configure
 identity through the standard Azure SDK environment, workload identity, managed identity, Azure CLI,
 or developer credential chain. Azure resource scanning is intentionally not implemented yet.
+
+### Azure RBAC scanning
+
+`AzureRBACScanner` uses read-only Authorization APIs to detect Owner and Contributor assignments,
+subscription-level privileged roles, and role permissions matching configurable excessive action
+or data-action sets. Findings contain explicit scope, principal, role, severity, description, and
+remediation availability. The scanner never creates, updates, or deletes role assignments.

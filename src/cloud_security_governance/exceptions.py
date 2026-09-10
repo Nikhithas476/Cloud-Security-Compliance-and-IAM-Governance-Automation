@@ -41,5 +41,9 @@ class AzureAuthenticationError(AzureScannerError):
     """Raised when Azure authentication cannot be validated."""
 
 
+class AzureScanError(AzureScannerError):
+    """Raised when a read-only Azure security scan cannot be completed."""
+
+
 class GovernanceError(CloudSecurityError):
     """Raised when an IAM governance operation fails."""

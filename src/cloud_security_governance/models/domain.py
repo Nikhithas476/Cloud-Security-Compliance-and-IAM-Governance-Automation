@@ -194,6 +194,9 @@ class Finding(SecurityModel):
     title: ShortText
     description: LongText
     severity: Severity
+    scope: ResourceIdentifier | None = None
+    principal: Identifier | None = None
+    role: ShortText | None = None
     remediation_available: bool = False
     status: FindingStatus = FindingStatus.OPEN
     evidence: dict[str, Any] = Field(default_factory=dict)

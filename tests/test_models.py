@@ -134,6 +134,24 @@ def test_finding_and_nested_resource_round_trip(finding: Finding) -> None:
     assert restored.detected_at.tzinfo is not None
 
 
+def test_finding_preserves_normalized_access_context(
+    finding: Finding,
+) -> None:
+    contextual = finding.model_copy(
+        update={
+            "scope": "/subscriptions/example",
+            "principal": "principal-id",
+            "role": "Security Reader",
+        }
+    )
+
+    restored = Finding.model_validate_json(contextual.model_dump_json())
+
+    assert restored.scope == "/subscriptions/example"
+    assert restored.principal == "principal-id"
+    assert restored.role == "Security Reader"
+
+
 def test_scan_result_round_trip(
     aws_account: CloudAccount, finding: Finding
 ) -> None:
