@@ -13,3 +13,9 @@ cloud:
   # Add only the AWS Config rules whose compliance state should be retrieved.
   aws_config_rule_names: []
   azure_subscription_id: ""
+  azure_storage_encryption_rules:
+    required_services:
+      - blob
+      - file
+    require_infrastructure_encryption: false
+    require_customer_managed_key: false

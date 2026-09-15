@@ -32,6 +32,13 @@ class Settings(BaseModel):
     )
     aws_config_rule_names: list[str] = Field(default_factory=list)
     azure_subscription_id: str = ""
+    azure_storage_encryption_rules: dict[str, Any] = Field(
+        default_factory=lambda: {
+            "required_services": ["blob", "file"],
+            "require_infrastructure_encryption": False,
+            "require_customer_managed_key": False,
+        }
+    )
     config_file: Path = Field(default=Path("config/default.yaml"), exclude=True)
 
 
@@ -57,6 +64,7 @@ def _yaml_values(path: Path) -> dict[str, Any]:
         "aws_encryption_rules": cloud.get("aws_encryption_rules"),
         "aws_config_rule_names": cloud.get("aws_config_rule_names"),
         "azure_subscription_id": cloud.get("azure_subscription_id"),
+        "azure_storage_encryption_rules": cloud.get("azure_storage_encryption_rules"),
     }
 
 

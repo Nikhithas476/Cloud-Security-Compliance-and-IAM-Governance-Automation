@@ -40,4 +40,35 @@ def test_aws_authentication_environment_settings(monkeypatch, tmp_path: Path) ->
         "aws.ec2.ebs.volume-encryption-enabled",
     ]
     assert settings.aws_config_rule_names == []
+    assert settings.azure_storage_encryption_rules == {
+        "required_services": ["blob", "file"],
+        "require_infrastructure_encryption": False,
+        "require_customer_managed_key": False,
+    }
+    get_settings.cache_clear()
+
+
+def test_azure_storage_encryption_rules_load_from_yaml(monkeypatch, tmp_path: Path) -> None:
+    config_file = tmp_path / "settings.yaml"
+    config_file.write_text(
+        "cloud:\n"
+        "  azure_storage_encryption_rules:\n"
+        "    required_services: [blob, file, queue, table]\n"
+        "    require_infrastructure_encryption: true\n"
+        "    require_customer_managed_key: true\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("CONFIG_FILE", str(config_file))
+    get_settings.cache_clear()
+
+    settings = get_settings()
+
+    assert settings.azure_storage_encryption_rules["required_services"] == [
+        "blob",
+        "file",
+        "queue",
+        "table",
+    ]
+    assert settings.azure_storage_encryption_rules["require_infrastructure_encryption"] is True
+    assert settings.azure_storage_encryption_rules["require_customer_managed_key"] is True
     get_settings.cache_clear()
