@@ -64,6 +64,7 @@ class AzureStorageEncryptionScanner(AzureScanner):
         super().__init__(**base_options)
         self.rules = AzureStorageEncryptionRules.model_validate(rules or {})
         self._scan_clock = scan_clock
+        self.resources_scanned = 0
         try:
             self._storage = storage_client_factory(self._credential, self.subscription_id)
         except (AzureError, OSError) as exc:
@@ -76,9 +77,11 @@ class AzureStorageEncryptionScanner(AzureScanner):
 
         self.validate_authentication()
         detected_at = self._normalize_scan_time(self._scan_clock())
+        self.resources_scanned = 0
         findings: list[Finding] = []
         try:
             for account in self._storage.storage_accounts.list():
+                self.resources_scanned += 1
                 findings.extend(self._evaluate_account(account, detected_at))
         except HttpResponseError as exc:
             self._raise_scan_error(exc)

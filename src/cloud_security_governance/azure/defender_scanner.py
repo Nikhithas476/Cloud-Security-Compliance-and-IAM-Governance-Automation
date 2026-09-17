@@ -49,6 +49,7 @@ class AzureDefenderScanner(AzureScanner):
             base_options["clock"] = token_clock
         super().__init__(**base_options)
         self._scan_clock = scan_clock
+        self.resources_scanned = 0
         try:
             self._security = security_client_factory(self._credential, self.subscription_id)
         except (AzureError, OSError) as exc:
@@ -62,9 +63,11 @@ class AzureDefenderScanner(AzureScanner):
         self.validate_authentication()
         detected_at = self._normalize_scan_time(self._scan_clock())
         scope = f"/subscriptions/{self.subscription_id}"
+        self.resources_scanned = 0
         findings: list[Finding] = []
         try:
             for assessment in self._security.assessments.list(scope):
+                self.resources_scanned += 1
                 finding = self._to_finding(assessment, detected_at)
                 if finding is not None:
                     findings.append(finding)

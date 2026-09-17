@@ -88,6 +88,7 @@ class AzureRBACScanner(AzureScanner):
         super().__init__(**base_options)
         self.rules = rules or AzureRBACRules()
         self._scan_clock = scan_clock
+        self.resources_scanned = 0
         try:
             self._authorization = authorization_client_factory(
                 self._credential,
@@ -103,11 +104,13 @@ class AzureRBACScanner(AzureScanner):
 
         self.validate_authentication()
         detected_at = self._normalize_scan_time(self._scan_clock())
+        self.resources_scanned = 0
         findings: list[Finding] = []
         role_cache: dict[UUID, _RoleDetails] = dict(_BUILT_IN_ROLES)
         try:
             assignments = self._authorization.role_assignments.list_for_subscription()
             for assignment in assignments:
+                self.resources_scanned += 1
                 findings.extend(self._evaluate_assignment(assignment, role_cache, detected_at))
         except HttpResponseError as exc:
             self._raise_scan_error(exc)
@@ -326,4 +329,3 @@ class AzureRBACScanner(AzureScanner):
         code = getattr(service_error, "code", None)
         safe_code = str(code) if code else str(getattr(error, "status_code", "UnknownError"))
         raise AzureScanError(f"The Azure RBAC scan could not be completed ({safe_code})") from error
-

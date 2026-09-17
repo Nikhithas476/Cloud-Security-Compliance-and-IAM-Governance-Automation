@@ -45,6 +45,7 @@ class AzurePolicyScanner(AzureScanner):
         super().__init__(**base_options)
         self.severity = severity
         self._scan_clock = scan_clock
+        self.resources_scanned = 0
         try:
             self._policy = policy_client_factory(self._credential, self.subscription_id)
         except (AzureError, OSError) as exc:
@@ -57,6 +58,7 @@ class AzurePolicyScanner(AzureScanner):
 
         self.validate_authentication()
         detected_at = self._normalize_scan_time(self._scan_clock())
+        self.resources_scanned = 0
         findings: list[Finding] = []
         seen: set[tuple[str, str, str]] = set()
         query = QueryOptions(filter="ComplianceState eq 'NonCompliant'")
@@ -67,6 +69,7 @@ class AzurePolicyScanner(AzureScanner):
                 query_options=query,
             )
             for state in states:
+                self.resources_scanned += 1
                 finding = self._to_finding(state, detected_at)
                 if finding is None:
                     continue

@@ -24,6 +24,7 @@ NOW = 1_788_800_000.0
 @pytest.fixture(autouse=True)
 def clear_azure_subscription(monkeypatch) -> None:
     monkeypatch.delenv("AZURE_SUBSCRIPTION_ID", raising=False)
+    monkeypatch.delenv("AZURE_TENANT_ID", raising=False)
 
 
 def test_credential_is_initialized_once() -> None:
@@ -159,15 +160,14 @@ def test_invalid_access_tokens_are_rejected(token: object, message: str) -> None
         scanner.validate_authentication()
 
 
-def test_scan_is_non_operational_placeholder() -> None:
+def test_aggregate_scan_requires_tenant_id() -> None:
     credential = MagicMock()
     scanner = AzureScanner(
         subscription_id=SUBSCRIPTION_ID,
         credential_factory=MagicMock(return_value=credential),
     )
 
-    with pytest.raises(NotImplementedError, match="not implemented yet"):
+    with pytest.raises(AzureConfigurationError, match="AZURE_TENANT_ID is required"):
         scanner.scan()
 
     credential.get_token.assert_not_called()
-
