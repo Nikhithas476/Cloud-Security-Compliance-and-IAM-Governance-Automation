@@ -2,8 +2,10 @@
 
 from cloud_security_governance.models.domain import (
     CloudAccount,
+    CloudScanFailure,
     ComplianceRule,
     Finding,
+    MultiCloudScanResult,
     RemediationAction,
     Resource,
     ScanResult,
@@ -18,13 +20,14 @@ from cloud_security_governance.models.enums import (
 __all__ = [
     "CloudAccount",
     "CloudProvider",
+    "CloudScanFailure",
     "ComplianceRule",
     "Finding",
     "FindingStatus",
+    "MultiCloudScanResult",
     "RemediationAction",
     "RemediationStatus",
     "Resource",
     "ScanResult",
     "Severity",
 ]
-

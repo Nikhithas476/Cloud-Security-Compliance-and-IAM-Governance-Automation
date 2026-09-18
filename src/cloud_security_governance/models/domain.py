@@ -320,3 +320,59 @@ class ScanResult(SecurityModel):
         if len(resource_ids) > self.resources_scanned:
             raise ValueError("resources_scanned cannot be less than resources represented by findings")
         return self
+
+
+class CloudScanFailure(SecurityModel):
+    """Sanitized failure details for one provider in a multi-cloud scan."""
+
+    provider: CloudProvider
+    error_type: Identifier
+    message: ShortText
+
+
+class MultiCloudScanResult(SecurityModel):
+    """Aggregate metadata, findings, and isolated failures from cloud scans."""
+
+    scan_id: UUID = Field(default_factory=uuid4)
+    started_at: datetime
+    completed_at: datetime
+    results: list[ScanResult] = Field(default_factory=list)
+    failures: list[CloudScanFailure] = Field(default_factory=list)
+    findings: list[Finding] = Field(default_factory=list)
+    resources_scanned: int = Field(ge=0)
+    findings_count: int | None = Field(default=None, ge=0)
+    duration_seconds: float | None = Field(default=None, ge=0)
+
+    @field_validator("started_at", "completed_at")
+    @classmethod
+    def timestamps_must_be_aware(cls, value: datetime) -> datetime:
+        return _normalize_datetime(value)
+
+    @model_validator(mode="after")
+    def validate_aggregate(self) -> Self:
+        if self.completed_at < self.started_at:
+            raise ValueError("completed_at must not precede started_at")
+
+        expected_duration = (self.completed_at - self.started_at).total_seconds()
+        if self.duration_seconds is None:
+            object.__setattr__(self, "duration_seconds", expected_duration)
+        elif abs(self.duration_seconds - expected_duration) > 0.000001:
+            raise ValueError("duration_seconds must match the scan timestamps")
+
+        combined_findings = [finding for result in self.results for finding in result.findings]
+        if self.findings != combined_findings:
+            raise ValueError("findings must contain every successful cloud finding in order")
+        if self.resources_scanned != sum(result.resources_scanned for result in self.results):
+            raise ValueError("resources_scanned must match the successful cloud results")
+
+        expected_findings = len(self.findings)
+        if self.findings_count is None:
+            object.__setattr__(self, "findings_count", expected_findings)
+        elif self.findings_count != expected_findings:
+            raise ValueError("findings_count must match the findings list")
+
+        providers = [result.account.provider for result in self.results]
+        providers.extend(failure.provider for failure in self.failures)
+        if len(providers) != len(set(providers)):
+            raise ValueError("each cloud provider must appear exactly once")
+        return self

@@ -13,6 +13,7 @@ from azure.core.credentials import TokenCredential
 from azure.core.exceptions import AzureError, ClientAuthenticationError
 from azure.identity import CredentialUnavailableError, DefaultAzureCredential
 
+from cloud_security_governance.base_scanner import BaseScanner
 from cloud_security_governance.exceptions import (
     AzureAuthenticationError,
     AzureConfigurationError,
@@ -27,13 +28,15 @@ def _utc_now() -> datetime:
     return datetime.now(UTC)
 
 
-class AzureScanner:
+class AzureScanner(BaseScanner):
     """Initialize secure Azure credentials and expose authentication validation.
 
     ``DefaultAzureCredential`` uses the Azure SDK credential chain, including local developer
     credentials and managed/workload identities. Credential values are never accepted, stored,
     logged, or returned by this scanner.
     """
+
+    provider = CloudProvider.AZURE
 
     def __init__(
         self,

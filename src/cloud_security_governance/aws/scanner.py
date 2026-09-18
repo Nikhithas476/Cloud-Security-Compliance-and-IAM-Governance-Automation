@@ -19,6 +19,7 @@ from botocore.exceptions import (
     ProfileNotFound,
 )
 
+from cloud_security_governance.base_scanner import BaseScanner
 from cloud_security_governance.exceptions import (
     AWSAuthenticationError,
     AWSConfigurationError,
@@ -46,13 +47,15 @@ class AWSCallerIdentity(TypedDict):
     UserId: str
 
 
-class AWSScanner:
+class AWSScanner(BaseScanner):
     """Build a secure boto3 session and expose read-only identity operations.
 
     Credential values are never accepted directly. boto3 resolves credentials through its
     standard provider chain, optionally scoped to ``AWS_PROFILE``. When ``AWS_ROLE_ARN`` is set,
     the source session assumes that role and keeps the temporary credentials in memory only.
     """
+
+    provider = CloudProvider.AWS
 
     def __init__(
         self,
