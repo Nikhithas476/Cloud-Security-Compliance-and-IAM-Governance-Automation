@@ -2,7 +2,14 @@
 
 from cloud_security_governance.base_scanner import BaseScanner
 from cloud_security_governance.orchestrator import ScannerOrchestrator
+from cloud_security_governance.rule_loader import RuleConfiguration, RuleDefinition, load_rules
 
 __version__ = "0.1.0"
 
-__all__ = ["BaseScanner", "ScannerOrchestrator"]
+__all__ = [
+    "BaseScanner",
+    "RuleConfiguration",
+    "RuleDefinition",
+    "ScannerOrchestrator",
+    "load_rules",
+]

@@ -1,0 +1,141 @@
+rules:
+  - rule_id: aws.iam.policy.wildcard-action
+    name: IAM policy allows all actions
+    cloud: aws
+    severity: critical
+    description: Detects IAM allow statements that grant every API action with Action set to wildcard.
+    enabled: true
+    remediation_available: true
+  - rule_id: aws.iam.policy.wildcard-resource
+    name: IAM policy applies to all resources
+    cloud: aws
+    severity: high
+    description: Detects IAM allow statements whose Resource is unrestricted.
+    enabled: true
+    remediation_available: true
+  - rule_id: aws.iam.user.mfa-enabled
+    name: IAM user MFA is required
+    cloud: aws
+    severity: high
+    description: Detects IAM users without an assigned multi-factor authentication device.
+    enabled: true
+    remediation_available: true
+  - rule_id: aws.iam.access-key.stale
+    name: IAM access keys must not be stale
+    cloud: aws
+    severity: high
+    description: Detects active IAM access keys older than the configured age threshold.
+    enabled: true
+    remediation_available: true
+  - rule_id: aws.iam.root.access-key
+    name: Root account access keys are prohibited
+    cloud: aws
+    severity: critical
+    description: Detects active access keys belonging to the AWS root account.
+    enabled: true
+    remediation_available: true
+  - rule_id: aws.s3.bucket.encryption-enabled
+    name: S3 bucket default encryption is required
+    cloud: aws
+    severity: high
+    description: Detects S3 buckets without a valid default server-side encryption configuration.
+    enabled: true
+    remediation_available: true
+  - rule_id: aws.ec2.ebs.volume-encryption-enabled
+    name: EBS volume encryption is required
+    cloud: aws
+    severity: high
+    description: Detects EBS volumes that are not encrypted at rest.
+    enabled: true
+    remediation_available: true
+  - rule_id: aws.cloudtrail.trail.exists
+    name: CloudTrail must exist
+    cloud: aws
+    severity: critical
+    description: Detects AWS accounts without a CloudTrail trail in the configured region.
+    enabled: true
+    remediation_available: true
+  - rule_id: aws.cloudtrail.logging.enabled
+    name: CloudTrail logging must be enabled
+    cloud: aws
+    severity: critical
+    description: Detects CloudTrail trails that are not actively logging.
+    enabled: true
+    remediation_available: true
+  - rule_id: aws.config.recorder.enabled
+    name: AWS Config recorder must be enabled
+    cloud: aws
+    severity: high
+    description: Detects a missing or disabled AWS Config configuration recorder.
+    enabled: true
+    remediation_available: true
+  - rule_id: aws.config.rule.compliant
+    name: Selected AWS Config rules must be compliant
+    cloud: aws
+    severity: high
+    description: Detects selected AWS Config rules that report a non-compliant state.
+    enabled: true
+    remediation_available: true
+  - rule_id: azure.rbac.owner-assignment
+    name: Azure Owner role assignment
+    cloud: azure
+    severity: critical
+    description: Detects principals assigned the Azure Owner role.
+    enabled: true
+    remediation_available: true
+  - rule_id: azure.rbac.contributor-assignment
+    name: Azure Contributor role assignment
+    cloud: azure
+    severity: high
+    description: Detects principals assigned the Azure Contributor role.
+    enabled: true
+    remediation_available: true
+  - rule_id: azure.rbac.subscription-privileged-assignment
+    name: Subscription-level privileged role assignment
+    cloud: azure
+    severity: critical
+    description: Detects configured privileged roles assigned across an entire Azure subscription.
+    enabled: true
+    remediation_available: true
+  - rule_id: azure.rbac.excessive-permissions
+    name: Azure role grants excessive permissions
+    cloud: azure
+    severity: high
+    description: Detects role assignments matching configured excessive action or data-action rules.
+    enabled: true
+    remediation_available: true
+  - rule_id: azure.policy.non-compliant-resource
+    name: Azure Policy non-compliant resource
+    cloud: azure
+    severity: high
+    description: Detects resources reported as non-compliant by Azure Policy Insights.
+    enabled: true
+    remediation_available: false
+  - rule_id: azure.storage.encryption.service-enabled
+    name: Azure Storage service encryption is required
+    cloud: azure
+    severity: high
+    description: Detects Storage accounts missing encryption for a configured required service.
+    enabled: true
+    remediation_available: true
+  - rule_id: azure.storage.encryption.infrastructure-enabled
+    name: Azure Storage infrastructure encryption is required
+    cloud: azure
+    severity: medium
+    description: Detects Storage accounts missing the configured secondary encryption layer.
+    enabled: true
+    remediation_available: true
+  - rule_id: azure.storage.encryption.customer-managed-key
+    name: Azure Storage customer-managed key is required
+    cloud: azure
+    severity: high
+    description: Detects Storage accounts that do not use a customer-managed Key Vault key.
+    enabled: true
+    remediation_available: true
+  - rule_id: azure.defender.recommendation.*
+    name: Microsoft Defender for Cloud recommendation
+    cloud: azure
+    severity: informational
+    description: Matches unhealthy Defender for Cloud assessments; each finding uses Defender severity.
+    enabled: true
+    remediation_available: true
