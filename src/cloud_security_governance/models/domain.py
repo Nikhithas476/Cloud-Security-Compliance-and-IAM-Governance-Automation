@@ -19,6 +19,7 @@ from pydantic import (
 
 from cloud_security_governance.models.enums import (
     CloudProvider,
+    ComplianceStatus,
     FindingStatus,
     RemediationStatus,
     Severity,
@@ -183,6 +184,77 @@ class ComplianceRule(SecurityModel):
         if len(normalized) != len(set(normalized)):
             raise ValueError("frameworks must not contain duplicates")
         return value
+
+
+class ComplianceResult(SecurityModel):
+    """Normalized outcome for one enabled compliance rule."""
+
+    rule_id: ShortText
+    rule_name: ShortText
+    cloud: CloudProvider
+    severity: Severity
+    description: LongText
+    status: ComplianceStatus
+    remediation_available: bool
+    findings: list[Finding] = Field(default_factory=list)
+    finding_count: int | None = Field(default=None, ge=0)
+    evaluated_at: datetime = Field(default_factory=_utc_now)
+
+    @field_validator("evaluated_at")
+    @classmethod
+    def evaluated_at_must_be_aware(cls, value: datetime) -> datetime:
+        return _normalize_datetime(value)
+
+    @model_validator(mode="after")
+    def validate_outcome(self) -> Self:
+        expected_count = len(self.findings)
+        if self.finding_count is None:
+            object.__setattr__(self, "finding_count", expected_count)
+        elif self.finding_count != expected_count:
+            raise ValueError("finding_count must match the findings list")
+        expected_status = (
+            ComplianceStatus.NON_COMPLIANT if self.findings else ComplianceStatus.COMPLIANT
+        )
+        if self.status is not expected_status:
+            raise ValueError("status must reflect whether matching findings exist")
+        if any(finding.resource.provider is not self.cloud for finding in self.findings):
+            raise ValueError("all findings must match the compliance rule cloud")
+        return self
+
+
+class ComplianceReport(SecurityModel):
+    """Complete result of evaluating findings against enabled compliance rules."""
+
+    evaluation_id: UUID = Field(default_factory=uuid4)
+    evaluated_at: datetime = Field(default_factory=_utc_now)
+    results: list[ComplianceResult] = Field(default_factory=list)
+    unmatched_findings: list[Finding] = Field(default_factory=list)
+    rules_evaluated: int = Field(ge=0)
+    compliant_rules: int = Field(ge=0)
+    non_compliant_rules: int = Field(ge=0)
+    matched_findings: int = Field(ge=0)
+
+    @field_validator("evaluated_at")
+    @classmethod
+    def evaluated_at_must_be_aware(cls, value: datetime) -> datetime:
+        return _normalize_datetime(value)
+
+    @model_validator(mode="after")
+    def validate_summary(self) -> Self:
+        compliant = sum(result.status is ComplianceStatus.COMPLIANT for result in self.results)
+        non_compliant = sum(
+            result.status is ComplianceStatus.NON_COMPLIANT for result in self.results
+        )
+        matched = sum(len(result.findings) for result in self.results)
+        if self.rules_evaluated != len(self.results):
+            raise ValueError("rules_evaluated must match the results list")
+        if self.compliant_rules != compliant:
+            raise ValueError("compliant_rules must match the results")
+        if self.non_compliant_rules != non_compliant:
+            raise ValueError("non_compliant_rules must match the results")
+        if self.matched_findings != matched:
+            raise ValueError("matched_findings must match the results")
+        return self
 
 
 class Finding(SecurityModel):

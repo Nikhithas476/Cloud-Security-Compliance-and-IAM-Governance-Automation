@@ -29,6 +29,13 @@ class FindingStatus(StrEnum):
     SUPPRESSED = "suppressed"
 
 
+class ComplianceStatus(StrEnum):
+    """Outcome of evaluating scanner findings against one enabled rule."""
+
+    COMPLIANT = "compliant"
+    NON_COMPLIANT = "non_compliant"
+
+
 class RemediationStatus(StrEnum):
     """Execution state of a remediation action."""
 
@@ -37,4 +44,3 @@ class RemediationStatus(StrEnum):
     COMPLETED = "completed"
     FAILED = "failed"
     CANCELLED = "cancelled"
-
