@@ -3,6 +3,13 @@ application:
   environment: development
 logging:
   level: INFO
+risk:
+  # Scores are additive per unique finding and capped at 100.
+  weights:
+    critical: 25
+    high: 10
+    medium: 5
+    low: 1
 cloud:
   aws_region: us-east-1
   aws_profile:

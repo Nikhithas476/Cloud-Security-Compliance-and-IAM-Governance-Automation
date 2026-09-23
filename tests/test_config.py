@@ -45,6 +45,12 @@ def test_aws_authentication_environment_settings(monkeypatch, tmp_path: Path) ->
         "require_infrastructure_encryption": False,
         "require_customer_managed_key": False,
     }
+    assert settings.risk_weights.model_dump() == {
+        "critical": 25,
+        "high": 10,
+        "medium": 5,
+        "low": 1,
+    }
     get_settings.cache_clear()
 
 

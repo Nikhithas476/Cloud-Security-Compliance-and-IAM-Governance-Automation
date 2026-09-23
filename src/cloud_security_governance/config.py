@@ -11,6 +11,7 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from cloud_security_governance.exceptions import ConfigurationError
+from cloud_security_governance.risk import RiskWeights
 
 
 class Settings(BaseModel):
@@ -40,6 +41,7 @@ class Settings(BaseModel):
             "require_customer_managed_key": False,
         }
     )
+    risk_weights: RiskWeights = Field(default_factory=RiskWeights)
     config_file: Path = Field(default=Path("config/default.yaml"), exclude=True)
 
 
@@ -55,6 +57,7 @@ def _yaml_values(path: Path) -> dict[str, Any]:
     application = raw.get("application", {})
     logging_config = raw.get("logging", {})
     cloud = raw.get("cloud", {})
+    risk = raw.get("risk", {})
     return {
         "app_name": application.get("name"),
         "app_env": application.get("environment"),
@@ -67,6 +70,7 @@ def _yaml_values(path: Path) -> dict[str, Any]:
         "azure_subscription_id": cloud.get("azure_subscription_id"),
         "azure_tenant_id": cloud.get("azure_tenant_id"),
         "azure_storage_encryption_rules": cloud.get("azure_storage_encryption_rules"),
+        "risk_weights": risk.get("weights"),
     }
 
 
