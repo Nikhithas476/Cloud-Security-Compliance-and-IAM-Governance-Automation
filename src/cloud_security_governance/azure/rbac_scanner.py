@@ -125,7 +125,9 @@ class AzureRBACScanner(AzureScanner):
         detected_at: datetime,
     ) -> list[Finding]:
         assignment_id = self._required_string(assignment, "id", "role assignment")
-        assignment_name = self._optional_string(assignment, "name") or assignment_id.rsplit("/", 1)[-1]
+        assignment_name = (
+            self._optional_string(assignment, "name") or assignment_id.rsplit("/", 1)[-1]
+        )
         scope = self._required_string(assignment, "scope", "role assignment")
         principal_id = self._required_string(assignment, "principal_id", "role assignment")
         principal_type = self._optional_string(assignment, "principal_type") or "Unknown"
@@ -190,7 +192,10 @@ class AzureRBACScanner(AzureScanner):
                     detected_at=detected_at,
                 )
             )
-        if self._is_subscription_scope(scope) and role_id in self.rules.subscription_privileged_role_ids:
+        if (
+            self._is_subscription_scope(scope)
+            and role_id in self.rules.subscription_privileged_role_ids
+        ):
             findings.append(
                 self._finding(
                     rule_id=SUBSCRIPTION_PRIVILEGED_RULE_ID,
@@ -315,7 +320,9 @@ class AzureRBACScanner(AzureScanner):
 
     @staticmethod
     def _attribute(value: Any, attribute: str) -> Any:
-        return value.get(attribute) if isinstance(value, Mapping) else getattr(value, attribute, None)
+        return (
+            value.get(attribute) if isinstance(value, Mapping) else getattr(value, attribute, None)
+        )
 
     @staticmethod
     def _normalize_scan_time(value: datetime) -> datetime:

@@ -1,112 +1,54 @@
 # Cloud Security Compliance and IAM Governance Automation
 
-Foundation for a Python service that will automate cloud security compliance and IAM governance
-across AWS and Azure. Day 1 establishes the application, configuration, logging, tests, and
-deployment layout. Cloud scanning is intentionally not implemented yet.
+A portfolio-ready Python security platform that scans AWS and Azure, normalizes findings, evaluates
+configuration-driven controls, calculates deterministic risk, stores results, generates audit-ready
+reports, sends high-risk alerts, and performs explicitly approved remediations.
 
-## Requirements
+## Capabilities
 
-- Python 3.11 or newer
-- A virtual environment
+- AWS: IAM wildcard policies, missing MFA, stale/root keys, S3/EBS encryption, CloudTrail and Config
+- Azure: privileged/excessive RBAC, Policy, Storage encryption and Defender recommendations
+- Pydantic models, multi-cloud failure isolation, compliance, risk, DynamoDB, reports and webhooks
+- Review → approval → remediation → verification with one-use approvals, dry runs and audit history
+- Authenticated FastAPI, AWS Lambda/Azure Functions, Terraform, CloudFormation and OIDC CI/CD
 
-## Local setup
+## Quick start
 
 ```powershell
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
-Copy-Item .env.example .env
+$env:API_READER_TOKEN = "generate-a-distinct-random-value-at-least-32-characters"
+$env:API_OPERATOR_TOKEN = "generate-another-random-value-at-least-32-characters"
+uvicorn cloud_security_governance.main:app --app-dir src --host 127.0.0.1 --port 8000
 ```
 
-The application reads ordinary environment variables and an optional YAML configuration file.
-The `.env` file is a developer reference and is not automatically loaded, preventing accidental
-secret ingestion. Set variables in your shell or deployment platform as needed.
+`GET /health` is public. Other routes require a bearer token. The application does not auto-load
+`.env`; use workload identity, managed identity or a deployment secret manager.
 
-## Run
+## Validate and demonstrate
 
 ```powershell
-uvicorn cloud_security_governance.main:app --app-dir src --reload
+./scripts/test.ps1
+.venv\Scripts\python.exe scripts/portfolio_demo.py
 ```
 
-Open `http://127.0.0.1:8000/health` to verify the service.
+The validation script runs formatting, linting, coverage, security and infrastructure checks. The
+offline demonstration writes sanitized artifacts to ignored `demo-output/`.
 
-## Test and lint
+## Documentation
 
-```powershell
-pytest
-ruff check .
-```
+- [Architecture](docs/architecture.md)
+- [Setup](docs/setup.md)
+- [Security model](docs/security-model.md) and [security review](docs/security-review.md)
+- [Compliance rules](docs/compliance-rules.md), [risk](docs/risk-scoring.md) and [remediation](docs/remediation.md)
+- [REST API](docs/api.md), [deployment](infrastructure/README.md) and [portfolio demo](docs/portfolio-demo.md)
+- [DynamoDB schema](docs/dynamodb-schema.md) and [secret hygiene](SECURITY.md)
 
-## Project layout
+## Safety
 
-- `src/` — application package, configuration, logging, and API
-- `src/cloud_security_governance/models/` — validated, JSON-serializable domain models
-- `tests/` — unit and API tests
-- `config/` — safe default YAML configuration
-- `docs/` — architecture and development documentation
-- `scripts/` — local automation helpers
-- `infrastructure/` — future infrastructure-as-code modules
-- `lambda/` — AWS Lambda entry point
-- `azure_functions/` — Azure Functions entry point
-- `.github/workflows/` — continuous integration
-
-## Security
-
-Never commit credentials or scan output. Read [SECURITY.md](SECURITY.md) before contributing.
-
-## Domain models
-
-Core provider-neutral models are exported from `cloud_security_governance.models`. They use strict
-Pydantic validation and support `model_dump_json()` and `model_validate_json()` for JSON round
-trips. The foundation includes no AWS or Azure API calls.
-
-## AWS authentication foundation
-
-`AWSScanner` uses boto3's standard credential resolution chain. It supports `AWS_PROFILE`,
-`AWS_REGION`, and optional `AWS_ROLE_ARN` role assumption. Credentials must come from the AWS CLI,
-environment, workload identity, instance/container role, or another standard boto3 provider; never
-put credential values in this repository. Only the read-only STS identity operation is available.
-Resource scanning is intentionally not implemented yet.
-
-### IAM security scanning
-
-`AWSIAMScanner` performs read-only IAM checks for unrestricted policy actions/resources, users
-without MFA, access keys unused for more than 90 days, and root-account access keys. It evaluates
-customer-managed policies and inline user, role, and group policies. Findings use the common model
-and explicitly indicate whether remediation is available. The scanner never changes IAM resources.
-
-### Encryption security scanning
-
-`AWSEncryptionScanner` performs read-only checks for S3 default server-side encryption and EBS
-volume encryption. Enabled rule IDs come from `cloud.aws_encryption_rules` in the YAML configuration
-or can be supplied directly to the scanner. Both compliant and non-compliant resources contribute
-to the scan count, while only non-compliant resources produce common `Finding` objects. The scanner
-never changes S3 buckets or EBS volumes.
-
-### CloudTrail and AWS Config scanning
-
-`AWSCloudTrailConfigScanner` verifies that a CloudTrail trail exists and is logging, and that an
-AWS Config configuration recorder exists and is recording. It also retrieves compliance summaries
-for only the rule names selected through `cloud.aws_config_rule_names`. Non-compliant results become
-common findings. The scanner uses describe/get/list operations only and never changes either service.
-
-### Complete AWS scanning pipeline
-
-Calling `AWSScanner.scan()` runs IAM, encryption, CloudTrail, and AWS Config checks through one
-authenticated boto3 session. It returns one `ScanResult` containing a single normalized findings
-list plus scan ID, account ID, UTC timestamps, duration, resource count, finding count, and errors.
-
-## Azure authentication foundation
-
-`AzureScanner` uses `DefaultAzureCredential` and a validated `AZURE_SUBSCRIPTION_ID`. Authentication
-validation requests an Azure Resource Manager token but never exposes or stores its value. Configure
-identity through the standard Azure SDK environment, workload identity, managed identity, Azure CLI,
-or developer credential chain. Azure resource scanning is intentionally not implemented yet.
-
-### Azure RBAC scanning
-
-`AzureRBACScanner` uses read-only Authorization APIs to detect Owner and Contributor assignments,
-subscription-level privileged roles, and role permissions matching configurable excessive action
-or data-action sets. Findings contain explicit scope, principal, role, severity, description, and
-remediation availability. The scanner never creates, updates, or deletes role assignments.
+Scanning is read-only and never invokes remediation. A real mutation requires review, an explicit
+one-time approval bound to the exact finding/action/parameters, operator authorization, and state
+verification. Never deploy `infrastructure/demo` outside a disposable training environment. No
+cloud credentials are hardcoded, committed, returned by the API, or intentionally logged.

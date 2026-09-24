@@ -83,7 +83,9 @@ class RuleConfiguration(BaseModel):
     def find(self, finding_rule_id: str) -> RuleDefinition | None:
         """Find an enabled exact or template rule for a scanner finding ID."""
 
-        return next((rule for rule in self.rules if rule.enabled and rule.matches(finding_rule_id)), None)
+        return next(
+            (rule for rule in self.rules if rule.enabled and rule.matches(finding_rule_id)), None
+        )
 
 
 def load_rules(path: str | Path = Path("config/rules.yaml")) -> RuleConfiguration:

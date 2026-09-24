@@ -1,0 +1,35 @@
+name: Tests
+on:
+  workflow_call:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11", cache: pip}
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e ".[dev]"
+      - run: ruff format --check .
+      - run: ruff check .
+      - run: pytest --cov=cloud_security_governance --cov-report=term-missing --cov-fail-under=80
+  infrastructure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with: {terraform_version: "1.9.8"}
+      - run: terraform fmt -check -recursive infrastructure/terraform
+      - run: terraform -chdir=infrastructure/terraform/aws init -backend=false
+      - run: terraform -chdir=infrastructure/terraform/aws validate
+      - run: terraform -chdir=infrastructure/terraform/azure init -backend=false
+      - run: terraform -chdir=infrastructure/terraform/azure validate
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - run: pip install cfn-lint==1.39.1
+      - run: cfn-lint infrastructure/cloudformation/aws.yaml

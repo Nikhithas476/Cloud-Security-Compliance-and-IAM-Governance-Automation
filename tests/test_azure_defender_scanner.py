@@ -122,9 +122,7 @@ def test_non_actionable_or_missing_status_is_skipped(status: str | None) -> None
         (None, Severity.INFORMATIONAL),
     ],
 )
-def test_defender_severity_mapping(
-    defender_severity: str | None, expected: Severity
-) -> None:
+def test_defender_severity_mapping(defender_severity: str | None, expected: Severity) -> None:
     assert AzureDefenderScanner.map_severity(defender_severity) is expected
 
 

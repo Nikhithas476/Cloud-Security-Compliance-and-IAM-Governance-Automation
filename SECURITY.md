@@ -24,3 +24,10 @@ enough because Git history may retain it.
 Do not open a public issue containing sensitive details. Contact the repository owner privately
 with a description, reproduction steps, affected versions, and any proposed mitigation.
 
+## Runtime and deployment controls
+
+Use GitHub OIDC, AWS roles, Azure managed identity, and a managed secret store. Keep scanning and
+remediation identities separate. Never bypass the review and one-time approval gate, expose the
+application directly without TLS/rate limiting, log request bodies or credentials, or deploy the
+intentionally vulnerable demonstration resources into a production subscription/account. See
+`docs/security-review.md` for the current review and residual deployment responsibilities.

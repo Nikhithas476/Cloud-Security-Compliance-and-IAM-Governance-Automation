@@ -96,10 +96,12 @@ class AzurePolicyScanner(AzureScanner):
 
         resource_id = self._required_string(state, "resource_id", "policy state")
         policy_id = self._required_string(state, "policy_definition_id", "policy state")
-        policy_name = self._optional_string(state, "policy_definition_name") or policy_id.rsplit(
-            "/", 1
-        )[-1]
-        resource_type = self._optional_string(state, "resource_type") or "Microsoft.Resources/resource"
+        policy_name = (
+            self._optional_string(state, "policy_definition_name") or policy_id.rsplit("/", 1)[-1]
+        )
+        resource_type = (
+            self._optional_string(state, "resource_type") or "Microsoft.Resources/resource"
+        )
         resource_name = resource_id.rstrip("/").rsplit("/", 1)[-1]
         location = self._optional_string(state, "resource_location")
         assignment_id = self._optional_string(state, "policy_assignment_id")
@@ -127,7 +129,9 @@ class AzurePolicyScanner(AzureScanner):
         evaluated_at = self._attribute(state, "timestamp")
         if isinstance(evaluated_at, datetime):
             if evaluated_at.tzinfo is None or evaluated_at.utcoffset() is None:
-                raise AzureScanError("Azure returned a policy timestamp without timezone information")
+                raise AzureScanError(
+                    "Azure returned a policy timestamp without timezone information"
+                )
             evidence["policy_evaluated_at"] = evaluated_at.astimezone(UTC).isoformat()
 
         metadata = {"policy_definition_id": policy_id}
@@ -172,7 +176,9 @@ class AzurePolicyScanner(AzureScanner):
 
     @staticmethod
     def _attribute(value: Any, attribute: str) -> Any:
-        return value.get(attribute) if isinstance(value, Mapping) else getattr(value, attribute, None)
+        return (
+            value.get(attribute) if isinstance(value, Mapping) else getattr(value, attribute, None)
+        )
 
     @staticmethod
     def _normalize_scan_time(value: datetime) -> datetime:

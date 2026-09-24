@@ -44,7 +44,9 @@ def rule(
     )
 
 
-def finding(rule_id: str, cloud: CloudProvider = CloudProvider.AWS, *, suffix: str = "one") -> Finding:
+def finding(
+    rule_id: str, cloud: CloudProvider = CloudProvider.AWS, *, suffix: str = "one"
+) -> Finding:
     if cloud is CloudProvider.AWS:
         resource = Resource(
             resource_id=f"arn:aws:s3:::bucket-{suffix}",
@@ -240,7 +242,8 @@ def test_naive_evaluation_timestamp_is_rejected() -> None:
 
     with pytest.raises(ConfigurationError, match="timezone"):
         RuleEvaluator(definition).evaluate(
-            [], evaluated_at=datetime(2026, 9, 22, 12, 0)  # noqa: DTZ001
+            [],
+            evaluated_at=datetime(2026, 9, 22, 12, 0),  # noqa: DTZ001
         )
 
 

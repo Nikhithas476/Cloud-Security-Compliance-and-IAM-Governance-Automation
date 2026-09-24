@@ -323,15 +323,11 @@ def test_invalid_service_responses_are_rejected() -> None:
 
 
 def test_only_read_only_service_operations_are_invoked() -> None:
-    scanner, _, cloudtrail, config, _ = build_scanner(
-        config_rule_names=["selected-rule"]
-    )
+    scanner, _, cloudtrail, config, _ = build_scanner(config_rule_names=["selected-rule"])
 
     scanner.scan()
 
-    method_names = {
-        method_call[0] for method_call in cloudtrail.method_calls + config.method_calls
-    }
+    method_names = {method_call[0] for method_call in cloudtrail.method_calls + config.method_calls}
     assert method_names <= {
         "describe_trails",
         "get_trail_status",

@@ -100,7 +100,9 @@ class AzureDefenderScanner(AzureScanner):
             return None
         expected_scope = f"/subscriptions/{self.subscription_id}/"
         if not resource_id.casefold().startswith(expected_scope.casefold()):
-            raise AzureScanError("Defender returned an assessment outside the configured subscription")
+            raise AzureScanError(
+                "Defender returned an assessment outside the configured subscription"
+            )
 
         metadata = self._attribute(assessment, "metadata")
         title = (
@@ -201,7 +203,9 @@ class AzureDefenderScanner(AzureScanner):
     def _attribute(value: Any, attribute: str) -> Any:
         if value is None:
             return None
-        return value.get(attribute) if isinstance(value, Mapping) else getattr(value, attribute, None)
+        return (
+            value.get(attribute) if isinstance(value, Mapping) else getattr(value, attribute, None)
+        )
 
     @staticmethod
     def _normalize_scan_time(value: datetime) -> datetime:

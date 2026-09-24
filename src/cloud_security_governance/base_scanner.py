@@ -16,4 +16,3 @@ class BaseScanner(ABC):
     @abstractmethod
     def scan(self) -> ScanResult:
         """Run a read-only cloud scan and return its normalized result."""
-

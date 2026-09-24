@@ -25,9 +25,7 @@ def test_aws_authentication_environment_settings(monkeypatch, tmp_path: Path) ->
     monkeypatch.setenv("CONFIG_FILE", str(tmp_path / "missing.yaml"))
     monkeypatch.setenv("AWS_REGION", "eu-central-1")
     monkeypatch.setenv("AWS_PROFILE", "security-audit")
-    monkeypatch.setenv(
-        "AWS_ROLE_ARN", "arn:aws:iam::123456789012:role/SecurityAuditRole"
-    )
+    monkeypatch.setenv("AWS_ROLE_ARN", "arn:aws:iam::123456789012:role/SecurityAuditRole")
     get_settings.cache_clear()
 
     settings = get_settings()

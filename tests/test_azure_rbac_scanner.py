@@ -47,9 +47,7 @@ def assignment(
 ) -> SimpleNamespace:
     resolved_scope = scope or f"/subscriptions/{SUBSCRIPTION_ID}"
     return SimpleNamespace(
-        id=(
-            f"{resolved_scope}/providers/Microsoft.Authorization/roleAssignments/{name}"
-        ),
+        id=(f"{resolved_scope}/providers/Microsoft.Authorization/roleAssignments/{name}"),
         name=name,
         scope=resolved_scope,
         principal_id=PRINCIPAL_ID,
@@ -141,9 +139,7 @@ def test_configured_custom_role_is_privileged_at_subscription_scope() -> None:
 
 def test_custom_role_with_wildcard_action_is_excessive() -> None:
     scope = f"/subscriptions/{SUBSCRIPTION_ID}/resourceGroups/application"
-    scanner, _, authorization = build_scanner(
-        [assignment(CUSTOM_ROLE_ID, scope=scope)]
-    )
+    scanner, _, authorization = build_scanner([assignment(CUSTOM_ROLE_ID, scope=scope)])
     authorization.role_definitions.get_by_id.return_value = SimpleNamespace(
         role_name="Custom Administrator",
         permissions=[SimpleNamespace(actions=["*"], data_actions=[])],
@@ -322,7 +318,4 @@ def test_scanner_invokes_only_read_only_authorization_operations() -> None:
 
     method_names = {method_call[0] for method_call in authorization.method_calls}
     assert method_names <= {"role_assignments.list_for_subscription"}
-    assert not any(
-        name.endswith((".create", ".delete", ".update")) for name in method_names
-    )
-
+    assert not any(name.endswith((".create", ".delete", ".update")) for name in method_names)

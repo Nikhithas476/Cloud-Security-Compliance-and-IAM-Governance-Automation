@@ -59,9 +59,7 @@ def build_complete_pipeline() -> tuple[AWSScanner, MagicMock, dict[str, MagicMoc
         "list_groups": [{"Groups": []}],
     }
     iam.get_paginator.side_effect = lambda operation: FakePaginator(iam_pages[operation])
-    iam.get_account_summary.return_value = {
-        "SummaryMap": {"AccountAccessKeysPresent": 0}
-    }
+    iam.get_account_summary.return_value = {"SummaryMap": {"AccountAccessKeysPresent": 0}}
 
     s3 = MagicMock()
     s3.list_buckets.return_value = {"Buckets": [{"Name": "unencrypted-bucket"}]}
@@ -86,9 +84,7 @@ def build_complete_pipeline() -> tuple[AWSScanner, MagicMock, dict[str, MagicMoc
     cloudtrail = MagicMock()
     trail_arn = f"arn:aws:cloudtrail:us-east-1:{ACCOUNT_ID}:trail/security-trail"
     cloudtrail.describe_trails.return_value = {
-        "trailList": [
-            {"Name": "security-trail", "TrailARN": trail_arn, "HomeRegion": "us-east-1"}
-        ]
+        "trailList": [{"Name": "security-trail", "TrailARN": trail_arn, "HomeRegion": "us-east-1"}]
     }
     cloudtrail.get_trail_status.return_value = {"IsLogging": False}
 
@@ -213,4 +209,3 @@ def test_pipeline_rejects_a_result_for_a_different_account(monkeypatch) -> None:
             "cloud_security_governance.aws.iam_scanner.AWSIAMScanner.scan",
             original_scan,
         )
-

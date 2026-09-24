@@ -1,0 +1,178 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Secure Cloud Security Governance runtime (Lambda, DynamoDB, CloudTrail, Config).
+Parameters:
+  NamePrefix:
+    Type: String
+    Default: cloud-security-governance
+    AllowedPattern: "[a-zA-Z0-9-]{3,40}"
+  CodeBucket:
+    Type: String
+  CodeKey:
+    Type: String
+  CodeVersion:
+    Type: String
+    Default: ""
+  LogRetentionDays:
+    Type: Number
+    Default: 90
+    AllowedValues: [30, 60, 90, 120, 180, 365]
+Conditions:
+  HasCodeVersion: !Not [!Equals [!Ref CodeVersion, ""]]
+Resources:
+  RecordsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${NamePrefix}-records"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - {AttributeName: PK, AttributeType: S}
+        - {AttributeName: SK, AttributeType: S}
+        - {AttributeName: GSI1PK, AttributeType: S}
+        - {AttributeName: GSI1SK, AttributeType: S}
+      KeySchema:
+        - {AttributeName: PK, KeyType: HASH}
+        - {AttributeName: SK, KeyType: RANGE}
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1
+          KeySchema:
+            - {AttributeName: GSI1PK, KeyType: HASH}
+            - {AttributeName: GSI1SK, KeyType: RANGE}
+          Projection: {ProjectionType: ALL}
+      PointInTimeRecoverySpecification: {PointInTimeRecoveryEnabled: true}
+      SSESpecification: {SSEEnabled: true}
+  ScanRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement: [{Effect: Allow, Principal: {Service: lambda.amazonaws.com}, Action: "sts:AssumeRole"}]
+      Policies:
+        - PolicyName: ScanReadOnly
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - {Effect: Allow, Action: ["sts:GetCallerIdentity", "iam:Get*", "iam:List*", "s3:GetEncryptionConfiguration", "s3:ListAllMyBuckets", "ec2:DescribeVolumes", "cloudtrail:DescribeTrails", "cloudtrail:GetTrailStatus", "config:DescribeConfigurationRecorders", "config:DescribeConfigurationRecorderStatus", "config:GetComplianceDetailsByConfigRule", "config:DescribeConfigRules"], Resource: "*"}
+              - Effect: Allow
+                Action: ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:Query"]
+                Resource: [!GetAtt RecordsTable.Arn, !Sub "${RecordsTable.Arn}/index/GSI1"]
+              - Effect: Allow
+                Action: ["logs:CreateLogStream", "logs:PutLogEvents"]
+                Resource: !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${NamePrefix}-scan:log-stream:*"
+  RemediationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement: [{Effect: Allow, Principal: {Service: lambda.amazonaws.com}, Action: "sts:AssumeRole"}]
+      Policies:
+        - PolicyName: ApprovedRemediationOnly
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: ["iam:UpdateAccessKey", "iam:CreatePolicyVersion", "iam:GetPolicy", "iam:GetPolicyVersion", "iam:ListAccessKeys"]
+                Resource: [!Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:user/*", !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/*"]
+              - Effect: Allow
+                Action: ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:Query"]
+                Resource: [!GetAtt RecordsTable.Arn, !Sub "${RecordsTable.Arn}/index/GSI1"]
+              - Effect: Allow
+                Action: ["logs:CreateLogStream", "logs:PutLogEvents"]
+                Resource: !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${NamePrefix}-remediation:log-stream:*"
+  ScanFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${NamePrefix}-scan"
+      Runtime: python3.11
+      Handler: lambda.scan_handler.lambda_handler
+      Role: !GetAtt ScanRole.Arn
+      Timeout: 300
+      MemorySize: 512
+      ReservedConcurrentExecutions: 2
+      TracingConfig: {Mode: Active}
+      Code: {S3Bucket: !Ref CodeBucket, S3Key: !Ref CodeKey, S3ObjectVersion: !If [HasCodeVersion, !Ref CodeVersion, !Ref "AWS::NoValue"]}
+      Environment: {Variables: {DYNAMODB_TABLE_NAME: !Ref RecordsTable, LOG_LEVEL: INFO}}
+  RemediationFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${NamePrefix}-remediation"
+      Runtime: python3.11
+      Handler: lambda.remediation_handler.lambda_handler
+      Role: !GetAtt RemediationRole.Arn
+      Timeout: 60
+      ReservedConcurrentExecutions: 1
+      TracingConfig: {Mode: Active}
+      Code: {S3Bucket: !Ref CodeBucket, S3Key: !Ref CodeKey, S3ObjectVersion: !If [HasCodeVersion, !Ref CodeVersion, !Ref "AWS::NoValue"]}
+      Environment: {Variables: {DYNAMODB_TABLE_NAME: !Ref RecordsTable, LOG_LEVEL: INFO}}
+  ScanLogGroup: {Type: AWS::Logs::LogGroup, Properties: {LogGroupName: !Sub "/aws/lambda/${NamePrefix}-scan", RetentionInDays: !Ref LogRetentionDays}}
+  RemediationLogGroup: {Type: AWS::Logs::LogGroup, Properties: {LogGroupName: !Sub "/aws/lambda/${NamePrefix}-remediation", RetentionInDays: !Ref LogRetentionDays}}
+  AuditBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketEncryption: {ServerSideEncryptionConfiguration: [{ServerSideEncryptionByDefault: {SSEAlgorithm: AES256}}]}
+      PublicAccessBlockConfiguration: {BlockPublicAcls: true, BlockPublicPolicy: true, IgnorePublicAcls: true, RestrictPublicBuckets: true}
+      VersioningConfiguration: {Status: Enabled}
+  AuditBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref AuditBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: {Service: cloudtrail.amazonaws.com}
+            Action: "s3:GetBucketAcl"
+            Resource: !GetAtt AuditBucket.Arn
+            Condition: {StringEquals: {"AWS:SourceArn": !Sub "arn:${AWS::Partition}:cloudtrail:${AWS::Region}:${AWS::AccountId}:trail/${NamePrefix}"}}
+          - Effect: Allow
+            Principal: {Service: cloudtrail.amazonaws.com}
+            Action: "s3:PutObject"
+            Resource: !Sub "${AuditBucket.Arn}/AWSLogs/${AWS::AccountId}/*"
+            Condition: {StringEquals: {"s3:x-amz-acl": bucket-owner-full-control, "AWS:SourceArn": !Sub "arn:${AWS::Partition}:cloudtrail:${AWS::Region}:${AWS::AccountId}:trail/${NamePrefix}"}}
+          - Effect: Deny
+            Principal: "*"
+            Action: "s3:*"
+            Resource: [!GetAtt AuditBucket.Arn, !Sub "${AuditBucket.Arn}/*"]
+            Condition: {Bool: {"aws:SecureTransport": "false"}}
+          - Effect: Allow
+            Principal: {Service: config.amazonaws.com}
+            Action: "s3:GetBucketAcl"
+            Resource: !GetAtt AuditBucket.Arn
+            Condition: {StringEquals: {"AWS:SourceAccount": !Ref "AWS::AccountId"}}
+          - Effect: Allow
+            Principal: {Service: config.amazonaws.com}
+            Action: "s3:PutObject"
+            Resource: !Sub "${AuditBucket.Arn}/AWSLogs/${AWS::AccountId}/Config/*"
+            Condition: {StringEquals: {"s3:x-amz-acl": bucket-owner-full-control, "AWS:SourceAccount": !Ref "AWS::AccountId"}}
+  Trail:
+    Type: AWS::CloudTrail::Trail
+    DependsOn: AuditBucketPolicy
+    Properties:
+      TrailName: !Ref NamePrefix
+      S3BucketName: !Ref AuditBucket
+      EnableLogFileValidation: true
+      IncludeGlobalServiceEvents: true
+      IsMultiRegionTrail: true
+      IsLogging: true
+  ConfigRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement: [{Effect: Allow, Principal: {Service: config.amazonaws.com}, Action: "sts:AssumeRole"}]
+      ManagedPolicyArns: [!Sub "arn:${AWS::Partition}:iam::aws:policy/service-role/AWS_ConfigRole"]
+  ConfigDeliveryChannel:
+    Type: AWS::Config::DeliveryChannel
+    Properties: {Name: !Ref NamePrefix, S3BucketName: !Ref AuditBucket}
+  ConfigRecorder:
+    Type: AWS::Config::ConfigurationRecorder
+    Properties:
+      Name: !Ref NamePrefix
+      RoleARN: !GetAtt ConfigRole.Arn
+      RecordingGroup: {AllSupported: true, IncludeGlobalResourceTypes: true}
+Outputs:
+  TableName: {Value: !Ref RecordsTable}
+  ScanFunctionArn: {Value: !GetAtt ScanFunction.Arn}
+  RemediationFunctionArn: {Value: !GetAtt RemediationFunction.Arn}
+  TrailArn: {Value: !GetAtt Trail.Arn}

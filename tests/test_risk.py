@@ -105,9 +105,7 @@ def test_scores_are_capped_at_one_hundred() -> None:
 
 
 def test_configurable_weights_are_applied_to_every_score() -> None:
-    calculator = RiskCalculator(
-        {"critical": 40, "high": 20, "medium": 8, "low": 2}
-    )
+    calculator = RiskCalculator({"critical": 40, "high": 20, "medium": 8, "low": 2})
     findings = [
         finding(Severity.HIGH, CloudProvider.AWS, 1),
         finding(Severity.MEDIUM, CloudProvider.AZURE, 2),
@@ -124,9 +122,7 @@ def test_configurable_weights_are_applied_to_every_score() -> None:
 def test_zero_weights_are_supported() -> None:
     weights = RiskWeights(critical=0, high=0, medium=0, low=0)
 
-    result = RiskCalculator(weights).calculate(
-        [finding(Severity.CRITICAL, CloudProvider.AWS, 1)]
-    )
+    result = RiskCalculator(weights).calculate([finding(Severity.CRITICAL, CloudProvider.AWS, 1)])
 
     assert result.overall_risk_score == 0
     assert result.findings_scored == 1
@@ -170,9 +166,7 @@ def test_scoring_is_order_independent_and_accepts_generators() -> None:
 
 
 def test_risk_score_round_trips_through_json() -> None:
-    result = RiskCalculator().calculate(
-        [finding(Severity.CRITICAL, CloudProvider.AZURE, 1)]
-    )
+    result = RiskCalculator().calculate([finding(Severity.CRITICAL, CloudProvider.AZURE, 1)])
 
     assert RiskScore.model_validate_json(result.model_dump_json()) == result
 

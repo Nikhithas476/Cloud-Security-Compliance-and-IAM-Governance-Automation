@@ -95,7 +95,9 @@ class AWSCloudTrailConfigScanner(AWSScanner):
         except NoRegionError as exc:
             raise AWSConfigurationError(f"An AWS region is required for {service}") from exc
         except (BotoCoreError, OSError) as exc:
-            raise AWSConfigurationError(f"The AWS {service} client could not be initialized") from exc
+            raise AWSConfigurationError(
+                f"The AWS {service} client could not be initialized"
+            ) from exc
 
     def scan(self) -> ScanResult:
         """Run CloudTrail and Config checks and return provider-neutral findings."""
@@ -376,4 +378,6 @@ class AWSCloudTrailConfigScanner(AWSScanner):
     @classmethod
     def _raise_scan_client_error(cls, error: ClientError) -> NoReturn:
         code = cls._client_error_code(error) or "UnknownError"
-        raise AWSScanError(f"The AWS audit-services scan could not be completed ({code})") from error
+        raise AWSScanError(
+            f"The AWS audit-services scan could not be completed ({code})"
+        ) from error

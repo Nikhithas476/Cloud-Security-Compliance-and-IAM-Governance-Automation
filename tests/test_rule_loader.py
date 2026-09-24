@@ -78,9 +78,7 @@ def test_rule_fields_are_strongly_typed() -> None:
 def test_dynamic_defender_template_matches_assessment_rule_ids() -> None:
     configuration = load_rules(DEFAULT_RULES_PATH)
 
-    rule = configuration.find(
-        "azure.defender.recommendation.22222222-2222-4222-8222-222222222222"
-    )
+    rule = configuration.find("azure.defender.recommendation.22222222-2222-4222-8222-222222222222")
 
     assert rule is not None
     assert rule.rule_id == "azure.defender.recommendation.*"

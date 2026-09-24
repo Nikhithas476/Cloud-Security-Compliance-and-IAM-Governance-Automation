@@ -189,9 +189,7 @@ def test_mixed_scan_returns_only_non_compliant_resources() -> None:
     s3.get_bucket_encryption.side_effect = [
         {
             "ServerSideEncryptionConfiguration": {
-                "Rules": [
-                    {"ApplyServerSideEncryptionByDefault": {"SSEAlgorithm": "AES256"}}
-                ]
+                "Rules": [{"ApplyServerSideEncryptionByDefault": {"SSEAlgorithm": "AES256"}}]
             }
         },
         ClientError(
@@ -299,12 +297,8 @@ def test_ebs_api_error_is_sanitized() -> None:
         ({"Buckets": [{}]}, "invalid S3 bucket Name"),
     ],
 )
-def test_invalid_s3_responses_are_rejected(
-    response: dict[str, Any], message: str
-) -> None:
-    scanner, _, s3, _, _ = build_scanner(
-        enabled_rules={S3_BUCKET_ENCRYPTION_RULE_ID}
-    )
+def test_invalid_s3_responses_are_rejected(response: dict[str, Any], message: str) -> None:
+    scanner, _, s3, _, _ = build_scanner(enabled_rules={S3_BUCKET_ENCRYPTION_RULE_ID})
     s3.list_buckets.return_value = response
 
     with pytest.raises(AWSScanError, match=message):
@@ -335,4 +329,3 @@ def test_scanner_invokes_only_read_only_resource_operations() -> None:
         method.startswith(("create_", "delete_", "put_", "modify_", "enable_", "disable_"))
         for method in all_methods
     )
-

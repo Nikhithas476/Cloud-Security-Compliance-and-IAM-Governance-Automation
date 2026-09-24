@@ -21,7 +21,9 @@ IDENTITY = {
 ROLE_ARN = "arn:aws:iam::123456789012:role/SecurityAuditRole"
 
 
-def scanner_with_identity(identity: dict[str, object] | None = None) -> tuple[AWSScanner, MagicMock]:
+def scanner_with_identity(
+    identity: dict[str, object] | None = None,
+) -> tuple[AWSScanner, MagicMock]:
     sts = MagicMock()
     sts.get_caller_identity.return_value = identity or IDENTITY
     session = MagicMock()
@@ -182,9 +184,7 @@ def test_missing_profile_is_configuration_error() -> None:
         ({"profile": " "}, "AWS_PROFILE must not be empty"),
     ],
 )
-def test_invalid_configuration_is_rejected(
-    kwargs: dict[str, str], message: str
-) -> None:
+def test_invalid_configuration_is_rejected(kwargs: dict[str, str], message: str) -> None:
     with pytest.raises(AWSConfigurationError, match=message):
         AWSScanner(session_factory=MagicMock(), **kwargs)
 

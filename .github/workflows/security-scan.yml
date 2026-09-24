@@ -1,0 +1,38 @@
+name: Security Scan
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 6 * * 1"
+permissions:
+  contents: read
+  security-events: write
+jobs:
+  python-security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11", cache: pip}
+      - run: pip install -e . pip-audit==2.7.3 bandit==1.7.10
+      - run: pip-audit -r requirements.txt
+      - run: bandit -r src lambda azure_functions -x tests -ll
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  infrastructure-security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: infrastructure
+          framework: terraform,cloudformation
+          quiet: true
+          soft_fail: false

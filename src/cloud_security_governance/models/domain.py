@@ -390,7 +390,9 @@ class ScanResult(SecurityModel):
             resource_ids.add(resource.resource_id)
 
         if len(resource_ids) > self.resources_scanned:
-            raise ValueError("resources_scanned cannot be less than resources represented by findings")
+            raise ValueError(
+                "resources_scanned cannot be less than resources represented by findings"
+            )
         return self
 
 

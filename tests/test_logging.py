@@ -13,4 +13,3 @@ def test_json_formatter_produces_structured_record() -> None:
     assert payload["logger"] == "test"
     assert payload["message"] == "ready"
     assert "timestamp" in payload
-

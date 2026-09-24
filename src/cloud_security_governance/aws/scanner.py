@@ -157,7 +157,10 @@ class AWSScanner(BaseScanner):
         if not isinstance(credentials, Mapping):
             raise AWSAuthenticationError("AWS role assumption returned no credentials")
         required_keys = ("AccessKeyId", "SecretAccessKey", "SessionToken")
-        if any(not isinstance(credentials.get(key), str) or not credentials[key] for key in required_keys):
+        if any(
+            not isinstance(credentials.get(key), str) or not credentials[key]
+            for key in required_keys
+        ):
             raise AWSAuthenticationError("AWS role assumption returned incomplete credentials")
 
         try:
@@ -168,7 +171,9 @@ class AWSScanner(BaseScanner):
                 region_name=self.region,
             )
         except (BotoCoreError, OSError) as exc:
-            raise AWSAuthenticationError("The assumed-role AWS session could not be created") from exc
+            raise AWSAuthenticationError(
+                "The assumed-role AWS session could not be created"
+            ) from exc
 
     @staticmethod
     def _raise_client_authentication_error(error: ClientError, message: str) -> NoReturn:

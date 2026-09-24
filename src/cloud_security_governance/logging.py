@@ -32,4 +32,3 @@ def configure_logging(level: str = "INFO") -> None:
     root_logger.handlers.clear()
     root_logger.addHandler(handler)
     root_logger.setLevel(level.upper())
-

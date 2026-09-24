@@ -163,9 +163,7 @@ class AWSIAMScanner(AWSScanner):
             )
             resource_ids.add(user_resource.resource_id)
 
-            mfa_devices = list(
-                self._paginate("list_mfa_devices", "MFADevices", UserName=user_name)
-            )
+            mfa_devices = list(self._paginate("list_mfa_devices", "MFADevices", UserName=user_name))
             if not mfa_devices:
                 findings.append(
                     Finding(
@@ -467,9 +465,7 @@ class AWSIAMScanner(AWSScanner):
         return False
 
     @classmethod
-    def _required_datetime(
-        cls, value: Mapping[str, Any], key: str, context: str
-    ) -> datetime:
+    def _required_datetime(cls, value: Mapping[str, Any], key: str, context: str) -> datetime:
         result = value.get(key)
         if not isinstance(result, datetime):
             raise AWSScanError(f"AWS IAM returned an invalid {context} {key}")

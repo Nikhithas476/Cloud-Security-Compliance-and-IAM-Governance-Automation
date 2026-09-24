@@ -1,9 +1,6 @@
-"""Azure Functions entry-point placeholder; no cloud scanning is implemented."""
+"""Deployment exports for the scan and remediation Azure Functions."""
 
-from typing import Any
+from azure_functions.remediation_function import main as remediation
+from azure_functions.scan_function import main as scan
 
-
-def health(request: Any) -> dict[str, Any]:
-    del request
-    return {"status_code": 200, "body": "Service foundation is ready"}
-
+__all__ = ["remediation", "scan"]

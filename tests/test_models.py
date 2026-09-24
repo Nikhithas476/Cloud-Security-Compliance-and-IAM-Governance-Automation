@@ -152,9 +152,7 @@ def test_finding_preserves_normalized_access_context(
     assert restored.role == "Security Reader"
 
 
-def test_scan_result_round_trip(
-    aws_account: CloudAccount, finding: Finding
-) -> None:
+def test_scan_result_round_trip(aws_account: CloudAccount, finding: Finding) -> None:
     result = ScanResult(
         account=aws_account,
         started_at=NOW,
@@ -349,9 +347,7 @@ def test_remediation_status_requires_consistent_fields(
         )
 
 
-def test_scan_result_rejects_provider_mismatch(
-    aws_account: CloudAccount, finding: Finding
-) -> None:
+def test_scan_result_rejects_provider_mismatch(aws_account: CloudAccount, finding: Finding) -> None:
     azure_resource = Resource(
         resource_id="/subscriptions/example/resourceGroups/security",
         provider="azure",

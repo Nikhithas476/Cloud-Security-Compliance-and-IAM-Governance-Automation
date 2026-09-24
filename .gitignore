@@ -39,10 +39,13 @@ id_ed25519*
 
 # Terraform state and sensitive variable files
 .terraform/
+.tools/
 *.tfstate
 *.tfstate.*
 *.tfvars
 *.tfvars.json
+*.tfplan
+tfplan
 crash.log
 crash.*.log
 .terraformrc
@@ -97,10 +100,10 @@ cloud-scan-results/
 cloud_scan_results/
 findings/
 artifacts/
+demo-output/
 
 # Serverless local tooling
 .aws-sam/
 .serverless/
 .func/
 local.settings.json
-

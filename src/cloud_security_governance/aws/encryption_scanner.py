@@ -26,9 +26,7 @@ EBS_VOLUME_ENCRYPTION_RULE_ID = "aws.ec2.ebs.volume-encryption-enabled"
 SUPPORTED_ENCRYPTION_RULES = frozenset(
     {S3_BUCKET_ENCRYPTION_RULE_ID, EBS_VOLUME_ENCRYPTION_RULE_ID}
 )
-_MISSING_S3_ENCRYPTION_CODES = frozenset(
-    {"ServerSideEncryptionConfigurationNotFoundError"}
-)
+_MISSING_S3_ENCRYPTION_CODES = frozenset({"ServerSideEncryptionConfigurationNotFoundError"})
 
 
 def _utc_now() -> datetime:
@@ -82,11 +80,7 @@ class AWSEncryptionScanner(AWSScanner):
 
     @staticmethod
     def _validate_enabled_rules(enabled_rules: Collection[str] | None) -> frozenset[str]:
-        selected = (
-            SUPPORTED_ENCRYPTION_RULES
-            if enabled_rules is None
-            else frozenset(enabled_rules)
-        )
+        selected = SUPPORTED_ENCRYPTION_RULES if enabled_rules is None else frozenset(enabled_rules)
         unknown = selected - SUPPORTED_ENCRYPTION_RULES
         if unknown:
             names = ", ".join(sorted(unknown))
@@ -99,7 +93,9 @@ class AWSEncryptionScanner(AWSScanner):
         except NoRegionError as exc:
             raise AWSConfigurationError(f"An AWS region is required for {service}") from exc
         except (BotoCoreError, OSError) as exc:
-            raise AWSConfigurationError(f"The AWS {service} client could not be initialized") from exc
+            raise AWSConfigurationError(
+                f"The AWS {service} client could not be initialized"
+            ) from exc
 
     def scan(self) -> ScanResult:
         """Run configured read-only encryption checks and return common findings."""

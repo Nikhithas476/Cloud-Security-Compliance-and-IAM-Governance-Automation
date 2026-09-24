@@ -70,9 +70,7 @@ def build_scanner(
 
     iam = MagicMock()
     iam.get_paginator.side_effect = lambda operation: paginators[operation]
-    iam.get_account_summary.return_value = {
-        "SummaryMap": {"AccountAccessKeysPresent": 0}
-    }
+    iam.get_account_summary.return_value = {"SummaryMap": {"AccountAccessKeysPresent": 0}}
     sts = MagicMock()
     sts.get_caller_identity.return_value = IDENTITY
     session = MagicMock()
@@ -197,15 +195,11 @@ def test_url_encoded_inline_user_policy_is_evaluated() -> None:
 
     result = scanner.scan()
 
-    assert [finding.rule_id for finding in result.findings] == [
-        RESOURCE_WILDCARD_RULE_ID
-    ]
+    assert [finding.rule_id for finding in result.findings] == [RESOURCE_WILDCARD_RULE_ID]
     finding = result.findings[0]
     assert finding.resource.resource_type == "AWS::IAM::InlineUserPolicy"
     assert finding.resource.metadata["parent_name"] == "alice"
-    iam.get_user_policy.assert_called_once_with(
-        UserName="alice", PolicyName="InlineAuditPolicy"
-    )
+    iam.get_user_policy.assert_called_once_with(UserName="alice", PolicyName="InlineAuditPolicy")
 
 
 @pytest.mark.parametrize(
@@ -364,9 +358,7 @@ def test_key_exactly_at_threshold_is_not_stale() -> None:
 
 def test_root_access_keys_create_critical_finding() -> None:
     scanner, iam, _ = build_scanner()
-    iam.get_account_summary.return_value = {
-        "SummaryMap": {"AccountAccessKeysPresent": 1}
-    }
+    iam.get_account_summary.return_value = {"SummaryMap": {"AccountAccessKeysPresent": 1}}
 
     result = scanner.scan()
 
@@ -380,9 +372,7 @@ def test_root_access_keys_create_critical_finding() -> None:
 
 def test_scan_result_round_trips_through_json() -> None:
     scanner, iam, _ = build_scanner()
-    iam.get_account_summary.return_value = {
-        "SummaryMap": {"AccountAccessKeysPresent": 1}
-    }
+    iam.get_account_summary.return_value = {"SummaryMap": {"AccountAccessKeysPresent": 1}}
 
     result = scanner.scan()
     restored = ScanResult.model_validate_json(result.model_dump_json())
@@ -420,4 +410,3 @@ def test_only_read_only_iam_methods_are_invoked() -> None:
         method.startswith(("create_", "delete_", "update_", "put_", "attach_", "detach_"))
         for method in invoked_methods
     )
-

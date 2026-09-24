@@ -88,17 +88,23 @@ class AzureStorageEncryptionScanner(AzureScanner):
         except AzureScanError:
             raise
         except (AzureError, OSError) as exc:
-            raise AzureScanError("The Azure Storage encryption scan could not be completed") from exc
+            raise AzureScanError(
+                "The Azure Storage encryption scan could not be completed"
+            ) from exc
         return findings
 
     def _evaluate_account(self, account: Any, detected_at: datetime) -> list[Finding]:
         resource_id = self._required_string(account, "id", "Storage account")
         name = self._required_string(account, "name", "Storage account")
-        resource_type = self._optional_string(account, "type") or "Microsoft.Storage/storageAccounts"
+        resource_type = (
+            self._optional_string(account, "type") or "Microsoft.Storage/storageAccounts"
+        )
         location = self._optional_string(account, "location")
         encryption = self._attribute(account, "encryption")
         services = self._attribute(encryption, "services") if encryption is not None else None
-        key_source = self._optional_string(encryption, "key_source") if encryption is not None else None
+        key_source = (
+            self._optional_string(encryption, "key_source") if encryption is not None else None
+        )
         infrastructure_enabled = (
             self._attribute(encryption, "require_infrastructure_encryption") is True
             if encryption is not None
@@ -212,7 +218,9 @@ class AzureStorageEncryptionScanner(AzureScanner):
     def _attribute(value: Any, attribute: str) -> Any:
         if value is None:
             return None
-        return value.get(attribute) if isinstance(value, Mapping) else getattr(value, attribute, None)
+        return (
+            value.get(attribute) if isinstance(value, Mapping) else getattr(value, attribute, None)
+        )
 
     @staticmethod
     def _normalize_scan_time(value: datetime) -> datetime:

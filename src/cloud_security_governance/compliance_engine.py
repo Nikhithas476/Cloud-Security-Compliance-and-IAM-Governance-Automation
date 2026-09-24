@@ -35,10 +35,7 @@ class RuleEvaluator:
     def matches(self, finding: Finding) -> bool:
         """Return whether a finding belongs to this rule and cloud."""
 
-        return (
-            finding.resource.provider is self.rule.cloud
-            and self.rule.matches(finding.rule_id)
-        )
+        return finding.resource.provider is self.rule.cloud and self.rule.matches(finding.rule_id)
 
     def evaluate(
         self,
@@ -50,9 +47,7 @@ class RuleEvaluator:
 
         normalized_time = self._normalize_time(evaluated_at)
         matches = [finding for finding in findings if self.matches(finding)]
-        status = (
-            ComplianceStatus.NON_COMPLIANT if matches else ComplianceStatus.COMPLIANT
-        )
+        status = ComplianceStatus.NON_COMPLIANT if matches else ComplianceStatus.COMPLIANT
         return ComplianceResult(
             rule_id=self.rule.rule_id,
             rule_name=self.rule.name,
@@ -68,7 +63,9 @@ class RuleEvaluator:
     @staticmethod
     def _normalize_time(value: datetime) -> datetime:
         if value.tzinfo is None or value.utcoffset() is None:
-            raise ConfigurationError("Compliance evaluation timestamps must include timezone information")
+            raise ConfigurationError(
+                "Compliance evaluation timestamps must include timezone information"
+            )
         return value.astimezone(UTC)
 
 

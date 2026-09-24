@@ -1,0 +1,51 @@
+name: Deploy
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Protected GitHub environment
+        required: true
+        type: environment
+permissions:
+  contents: read
+  id-token: write
+concurrency: {group: "deploy-${{ inputs.environment }}", cancel-in-progress: false}
+jobs:
+  verify:
+    uses: ./.github/workflows/tests.yml
+  deploy-aws:
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform -chdir=infrastructure/terraform/aws init
+      - run: terraform -chdir=infrastructure/terraform/aws plan -input=false -out=tfplan
+        env:
+          TF_VAR_aws_region: ${{ vars.AWS_REGION }}
+          TF_VAR_lambda_package_bucket: ${{ vars.LAMBDA_PACKAGE_BUCKET }}
+          TF_VAR_lambda_package_key: ${{ vars.LAMBDA_PACKAGE_KEY }}
+      - run: terraform -chdir=infrastructure/terraform/aws apply -input=false -auto-approve tfplan
+  deploy-azure:
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform -chdir=infrastructure/terraform/azure init
+      - run: terraform -chdir=infrastructure/terraform/azure plan -input=false -out=tfplan
+        env:
+          TF_VAR_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          TF_VAR_function_package_url: ${{ secrets.AZURE_FUNCTION_PACKAGE_URL }}
+      - run: terraform -chdir=infrastructure/terraform/azure apply -input=false -auto-approve tfplan
