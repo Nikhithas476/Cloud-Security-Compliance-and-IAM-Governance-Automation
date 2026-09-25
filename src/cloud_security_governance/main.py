@@ -18,11 +18,17 @@ from cloud_security_governance.logging import configure_logging
 def create_app(
     api_service: GovernanceAPIService | None = None,
     authenticator: TokenAuthenticator | None = None,
+    api_service_factory=None,
 ) -> FastAPI:
     settings = get_settings()
     configure_logging(settings.log_level)
     application = FastAPI(title=settings.app_name, version=__version__)
     application.state.api_service = api_service
+    if api_service_factory is None:
+        from cloud_security_governance.bootstrap import get_api_service
+
+        api_service_factory = get_api_service
+    application.state.api_service_factory = api_service_factory
     application.state.authenticator = authenticator or TokenAuthenticator()
     application.include_router(router)
 

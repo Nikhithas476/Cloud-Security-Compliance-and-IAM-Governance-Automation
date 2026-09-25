@@ -51,3 +51,23 @@ class FindingStorage(ABC):
 
     @abstractmethod
     def save_remediation_history(self, action: RemediationAction) -> None: ...
+
+    def save_approval(self, approval: object) -> None:
+        """Persist an approval record when the backend supports remediation workflows."""
+
+        raise NotImplementedError
+
+    def get_approval(self, approval_id: UUID | str) -> object | None:
+        """Load an approval record when the backend supports remediation workflows."""
+
+        raise NotImplementedError
+
+    def save_reports(self, scan_id: UUID | str, reports: dict[str, str]) -> None:
+        """Persist generated report documents for later API retrieval."""
+
+        raise NotImplementedError
+
+    def get_reports(self, scan_id: UUID | str) -> dict[str, str] | None:
+        """Load generated report documents for a scan."""
+
+        raise NotImplementedError

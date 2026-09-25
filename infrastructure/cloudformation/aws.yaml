@@ -90,7 +90,7 @@ Resources:
       ReservedConcurrentExecutions: 2
       TracingConfig: {Mode: Active}
       Code: {S3Bucket: !Ref CodeBucket, S3Key: !Ref CodeKey, S3ObjectVersion: !If [HasCodeVersion, !Ref CodeVersion, !Ref "AWS::NoValue"]}
-      Environment: {Variables: {DYNAMODB_TABLE_NAME: !Ref RecordsTable, LOG_LEVEL: INFO}}
+      Environment: {Variables: {DYNAMODB_TABLE_NAME: !Ref RecordsTable, LOG_LEVEL: INFO, CLOUD_PROVIDERS: aws, STORAGE_BACKEND: dynamodb}}
   RemediationFunction:
     Type: AWS::Lambda::Function
     Properties:
@@ -102,7 +102,7 @@ Resources:
       ReservedConcurrentExecutions: 1
       TracingConfig: {Mode: Active}
       Code: {S3Bucket: !Ref CodeBucket, S3Key: !Ref CodeKey, S3ObjectVersion: !If [HasCodeVersion, !Ref CodeVersion, !Ref "AWS::NoValue"]}
-      Environment: {Variables: {DYNAMODB_TABLE_NAME: !Ref RecordsTable, LOG_LEVEL: INFO}}
+      Environment: {Variables: {DYNAMODB_TABLE_NAME: !Ref RecordsTable, LOG_LEVEL: INFO, CLOUD_PROVIDERS: aws, STORAGE_BACKEND: dynamodb}}
   ScanLogGroup: {Type: AWS::Logs::LogGroup, Properties: {LogGroupName: !Sub "/aws/lambda/${NamePrefix}-scan", RetentionInDays: !Ref LogRetentionDays}}
   RemediationLogGroup: {Type: AWS::Logs::LogGroup, Properties: {LogGroupName: !Sub "/aws/lambda/${NamePrefix}-remediation", RetentionInDays: !Ref LogRetentionDays}}
   AuditBucket:

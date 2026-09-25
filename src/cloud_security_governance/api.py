@@ -20,8 +20,13 @@ from cloud_security_governance.auth import (
     bearer,
 )
 from cloud_security_governance.config import get_settings
+from cloud_security_governance.exceptions import ApprovalError
 from cloud_security_governance.models import CloudProvider, Finding, FindingStatus, Severity
-from cloud_security_governance.remediation import RemediationOutcome
+from cloud_security_governance.remediation import (
+    ApprovalRequest,
+    ApprovalStatus,
+    RemediationOutcome,
+)
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -86,10 +91,55 @@ class RemediationResponse(BaseModel):
     message: str
 
 
+class ApprovalCreateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    action: str = Field(min_length=1, max_length=256, pattern=r"^[a-z0-9.-]+$")
+    parameters: dict[str, Any] = Field(default_factory=dict)
+
+
+class ApprovalDecisionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    notes: str | None = Field(default=None, max_length=2_000)
+
+
+class ApprovalResponse(BaseModel):
+    approval_id: UUID
+    finding_id: UUID
+    action: str
+    requested_by: str
+    reviewed_by: str | None
+    status: ApprovalStatus
+    requested_at: str
+    reviewed_at: str | None
+    review_notes: str | None
+
+    @classmethod
+    def from_approval(cls, approval: ApprovalRequest) -> ApprovalResponse:
+        return cls(
+            approval_id=approval.approval_id,
+            finding_id=approval.finding_id,
+            action=approval.action,
+            requested_by=approval.requested_by,
+            reviewed_by=approval.reviewed_by,
+            status=approval.status,
+            requested_at=approval.requested_at.isoformat(),
+            reviewed_at=approval.reviewed_at.isoformat() if approval.reviewed_at else None,
+            review_notes=approval.review_notes,
+        )
+
+
 def _service(request: Request) -> GovernanceAPIService:
     service = getattr(request.app.state, "api_service", None)
     if service is None:
-        raise HTTPException(status_code=503, detail="Service is not configured")
+        factory = getattr(request.app.state, "api_service_factory", None)
+        if factory is None:
+            raise HTTPException(status_code=503, detail="Service is not configured")
+        try:
+            service = factory()
+        except Exception as exc:
+            logger.error("service_bootstrap_failed type=%s", type(exc).__name__)
+            raise HTTPException(status_code=503, detail="Service is unavailable") from exc
+        request.app.state.api_service = service
     return service
 
 
@@ -100,11 +150,15 @@ def _principal(
 
 
 def _reader(principal: Annotated[Principal, Depends(_principal)]) -> Principal:
-    return authorize(principal, Role.READER, Role.OPERATOR)
+    return authorize(principal, Role.READER, Role.OPERATOR, Role.REVIEWER)
 
 
 def _operator(principal: Annotated[Principal, Depends(_principal)]) -> Principal:
     return authorize(principal, Role.OPERATOR)
+
+
+def _reviewer(principal: Annotated[Principal, Depends(_principal)]) -> Principal:
+    return authorize(principal, Role.REVIEWER)
 
 
 @router.get("/health", response_model=HealthResponse, tags=["system"])
@@ -178,6 +232,81 @@ def get_reports(
     if reports is None:
         raise HTTPException(status_code=404, detail="Report not found")
     return reports
+
+
+@router.post("/approvals/{finding_id}", response_model=ApprovalResponse, tags=["remediation"])
+def request_approval(
+    finding_id: UUID,
+    payload: ApprovalCreateRequest,
+    request: Request,
+    principal: Annotated[Principal, Depends(_operator)],
+) -> ApprovalResponse:
+    review = _service(request).request_approval(
+        finding_id,
+        action=payload.action,
+        parameters=payload.parameters,
+        requested_by=principal.subject,
+    )
+    if review is None:
+        raise HTTPException(status_code=404, detail="Finding not found")
+    logger.info(
+        "api_audit actor=%s action=request_approval approval_id=%s",
+        principal.subject,
+        review.approval.approval_id,
+    )
+    return ApprovalResponse.from_approval(review.approval)
+
+
+@router.get("/approvals/{approval_id}", response_model=ApprovalResponse, tags=["remediation"])
+def get_approval(
+    approval_id: UUID,
+    request: Request,
+    principal: Annotated[Principal, Depends(_reader)],
+) -> ApprovalResponse:
+    del principal
+    try:
+        approval = _service(request).get_approval(approval_id)
+    except ApprovalError as exc:
+        raise HTTPException(status_code=404, detail="Approval not found") from exc
+    return ApprovalResponse.from_approval(approval)
+
+
+@router.post(
+    "/approvals/{approval_id}/approve",
+    response_model=ApprovalResponse,
+    tags=["remediation"],
+)
+def approve_remediation(
+    approval_id: UUID,
+    payload: ApprovalDecisionRequest,
+    request: Request,
+    principal: Annotated[Principal, Depends(_reviewer)],
+) -> ApprovalResponse:
+    try:
+        approval = _service(request).approve(approval_id, principal.subject, payload.notes)
+    except ApprovalError as exc:
+        raise HTTPException(status_code=409, detail="Approval cannot be approved") from exc
+    logger.info("api_audit actor=%s action=approve approval_id=%s", principal.subject, approval_id)
+    return ApprovalResponse.from_approval(approval)
+
+
+@router.post(
+    "/approvals/{approval_id}/reject",
+    response_model=ApprovalResponse,
+    tags=["remediation"],
+)
+def reject_remediation(
+    approval_id: UUID,
+    payload: ApprovalDecisionRequest,
+    request: Request,
+    principal: Annotated[Principal, Depends(_reviewer)],
+) -> ApprovalResponse:
+    try:
+        approval = _service(request).reject(approval_id, principal.subject, payload.notes)
+    except ApprovalError as exc:
+        raise HTTPException(status_code=409, detail="Approval cannot be rejected") from exc
+    logger.info("api_audit actor=%s action=reject approval_id=%s", principal.subject, approval_id)
+    return ApprovalResponse.from_approval(approval)
 
 
 @router.post("/remediation/{finding_id}", response_model=RemediationResponse, tags=["remediation"])

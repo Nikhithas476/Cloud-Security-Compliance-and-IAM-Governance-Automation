@@ -4,6 +4,12 @@ The production modules are under `terraform/aws` and `terraform/azure`. The AWS 
 alternative is `cloudformation/aws.yaml`. They create separate scan and remediation identities;
 only the remediation identity can perform the two controlled IAM mutations.
 
+AWS functions receive `CLOUD_PROVIDERS=aws` and use DynamoDB. Azure functions receive
+`CLOUD_PROVIDERS=azure` and use a private Blob container through managed identity. Separate
+`FUNCTION_ROLE` values prevent the scan deployment from serving remediation and vice versa. Both
+packages use the Python v2 `FunctionApp` registration discovered through the repository-root
+`function_app.py` and `host.json` files.
+
 ## Prerequisites
 
 - Terraform 1.6 or newer and provider authentication through AWS/Azure workload identity

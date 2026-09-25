@@ -7,6 +7,8 @@ It relies on boto3's standard credential chain and never accepts credential valu
 | --- | --- | --- |
 | Finding | `FINDING#{finding_id}` | `METADATA` |
 | Scan metadata | `SCAN#{scan_id}` | `METADATA` |
+| Reports | `SCAN#{scan_id}` | `REPORTS` |
+| Approval | `APPROVAL#{approval_id}` | `METADATA` |
 | Remediation history | `FINDING#{finding_id}` | `REMEDIATION#{created_at}#{action_id}` |
 
 Findings also populate global secondary index `GSI1`:

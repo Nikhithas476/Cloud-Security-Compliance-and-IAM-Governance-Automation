@@ -96,7 +96,10 @@ resource "aws_lambda_function" "scan" {
   reserved_concurrent_executions = 2
   environment {
     variables = {
-      DYNAMODB_TABLE_NAME = aws_dynamodb_table.governance.name, LOG_LEVEL = "INFO"
+      DYNAMODB_TABLE_NAME = aws_dynamodb_table.governance.name
+      LOG_LEVEL            = "INFO"
+      CLOUD_PROVIDERS      = "aws"
+      STORAGE_BACKEND      = "dynamodb"
     }
   }
   tracing_config {
@@ -117,7 +120,10 @@ resource "aws_lambda_function" "remediation" {
   reserved_concurrent_executions = 1
   environment {
     variables = {
-      DYNAMODB_TABLE_NAME = aws_dynamodb_table.governance.name, LOG_LEVEL = "INFO"
+      DYNAMODB_TABLE_NAME = aws_dynamodb_table.governance.name
+      LOG_LEVEL            = "INFO"
+      CLOUD_PROVIDERS      = "aws"
+      STORAGE_BACKEND      = "dynamodb"
     }
   }
   tracing_config {

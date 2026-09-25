@@ -204,6 +204,51 @@ class DynamoDBStorage(FindingStorage):
         }
         self._put(item, "remediation history")
 
+    def save_approval(self, approval: object) -> None:
+        from cloud_security_governance.remediation import ApprovalRequest
+
+        normalized = ApprovalRequest.model_validate(approval)
+        self._put(
+            {
+                "PK": f"APPROVAL#{normalized.approval_id}",
+                "SK": "METADATA",
+                "record_type": "approval",
+                "payload": self._serialize(normalized),
+            },
+            "approval",
+        )
+
+    def get_approval(self, approval_id: UUID | str) -> object | None:
+        from cloud_security_governance.remediation import ApprovalRequest
+
+        identifier = self._uuid(approval_id, "approval ID")
+        item = self._get(f"APPROVAL#{identifier}", "METADATA")
+        return None if item is None else ApprovalRequest.model_validate(item.get("payload"))
+
+    def save_reports(self, scan_id: UUID | str, reports: dict[str, str]) -> None:
+        identifier = self._uuid(scan_id, "scan ID")
+        self._put(
+            {
+                "PK": f"SCAN#{identifier}",
+                "SK": "REPORTS",
+                "record_type": "reports",
+                "payload": dict(reports),
+            },
+            "reports",
+        )
+
+    def get_reports(self, scan_id: UUID | str) -> dict[str, str] | None:
+        identifier = self._uuid(scan_id, "scan ID")
+        item = self._get(f"SCAN#{identifier}", "REPORTS")
+        if item is None:
+            return None
+        payload = item.get("payload")
+        if not isinstance(payload, dict) or not all(
+            isinstance(key, str) and isinstance(value, str) for key, value in payload.items()
+        ):
+            raise StorageError("DynamoDB returned invalid report data")
+        return payload
+
     def _put(self, item: dict[str, Any], context: str) -> None:
         try:
             self._table.put_item(Item=item)

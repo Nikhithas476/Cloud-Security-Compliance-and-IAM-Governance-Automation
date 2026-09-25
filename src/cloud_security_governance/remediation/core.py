@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
 import logging
 from abc import ABC, abstractmethod
@@ -113,11 +114,22 @@ class RemediationResult(_Model):
     message: str
 
 
+class ApprovalRepository(Protocol):
+    def save_approval(self, approval: object) -> None: ...
+
+    def get_approval(self, approval_id: UUID | str) -> object | None: ...
+
+
 class ApprovalService:
     """Thread-safe, one-time approvals bound to an exact action and parameters."""
 
-    def __init__(self, clock: Callable[[], datetime] = _now) -> None:
+    def __init__(
+        self,
+        clock: Callable[[], datetime] = _now,
+        repository: ApprovalRepository | None = None,
+    ) -> None:
         self._clock = clock
+        self._repository = repository
         self._requests: dict[UUID, ApprovalRequest] = {}
         self._lock = RLock()
 
@@ -133,6 +145,7 @@ class ApprovalService:
         )
         with self._lock:
             self._requests[request.approval_id] = request
+            self._persist(request)
         return request
 
     def approve(self, approval_id: UUID, actor: str, notes: str | None = None) -> ApprovalRequest:
@@ -148,6 +161,10 @@ class ApprovalService:
             request = self._get(approval_id)
             if request.status is not ApprovalStatus.PENDING:
                 raise ApprovalError("Only a pending approval request can be decided")
+            if status is ApprovalStatus.APPROVED and hmac.compare_digest(
+                request.requested_by, actor.strip()
+            ):
+                raise ApprovalError("The requester cannot approve their own remediation")
             updated = ApprovalRequest.model_validate(
                 {
                     **request.model_dump(),
@@ -158,6 +175,7 @@ class ApprovalService:
                 }
             )
             self._requests[approval_id] = updated
+            self._persist(updated)
             return updated
 
     def consume(
@@ -174,13 +192,26 @@ class ApprovalService:
                 {**request.model_dump(), "status": ApprovalStatus.CONSUMED}
             )
             self._requests[approval_id] = consumed
+            self._persist(consumed)
             return consumed
 
+    def get(self, approval_id: UUID) -> ApprovalRequest:
+        with self._lock:
+            return self._get(approval_id)
+
     def _get(self, approval_id: UUID) -> ApprovalRequest:
+        if approval_id not in self._requests and self._repository is not None:
+            persisted = self._repository.get_approval(approval_id)
+            if persisted is not None:
+                self._requests[approval_id] = ApprovalRequest.model_validate(persisted)
         try:
             return self._requests[approval_id]
         except KeyError as exc:
             raise ApprovalError("The approval request does not exist") from exc
+
+    def _persist(self, request: ApprovalRequest) -> None:
+        if self._repository is not None:
+            self._repository.save_approval(request)
 
 
 class RemediationExecutor(ABC):

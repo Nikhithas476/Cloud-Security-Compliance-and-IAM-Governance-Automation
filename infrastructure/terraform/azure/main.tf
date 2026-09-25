@@ -36,6 +36,11 @@ resource "azurerm_storage_account" "functions" {
   }
   tags = local.tags
 }
+resource "azurerm_storage_container" "governance" {
+  name                  = "governance-records"
+  storage_account_name  = azurerm_storage_account.functions.name
+  container_access_type = "private"
+}
 resource "azurerm_service_plan" "functions" {
   name                = "asp-${local.base}"
   resource_group_name = azurerm_resource_group.main.name
@@ -79,7 +84,14 @@ resource "azurerm_linux_function_app" "main" {
     }
   }
   app_settings = {
-    APPLICATIONINSIGHTS_CONNECTION_STRING = azurerm_application_insights.main.connection_string, WEBSITE_RUN_FROM_PACKAGE = var.function_package_url, AZURE_SUBSCRIPTION_ID = var.subscription_id
+    APPLICATIONINSIGHTS_CONNECTION_STRING = azurerm_application_insights.main.connection_string
+    WEBSITE_RUN_FROM_PACKAGE              = var.function_package_url
+    AZURE_SUBSCRIPTION_ID                 = var.subscription_id
+    AZURE_STORAGE_ACCOUNT_URL             = azurerm_storage_account.functions.primary_blob_endpoint
+    AZURE_STORAGE_CONTAINER               = azurerm_storage_container.governance.name
+    CLOUD_PROVIDERS                       = "azure"
+    FUNCTION_ROLE                         = "scan"
+    STORAGE_BACKEND                       = "azure_blob"
   }
   tags = local.tags
 }
@@ -102,6 +114,11 @@ resource "azurerm_linux_function_app" "remediation" {
     APPLICATIONINSIGHTS_CONNECTION_STRING = azurerm_application_insights.main.connection_string
     WEBSITE_RUN_FROM_PACKAGE              = var.function_package_url
     AZURE_SUBSCRIPTION_ID                 = var.subscription_id
+    AZURE_STORAGE_ACCOUNT_URL             = azurerm_storage_account.functions.primary_blob_endpoint
+    AZURE_STORAGE_CONTAINER               = azurerm_storage_container.governance.name
+    CLOUD_PROVIDERS                       = "azure"
+    FUNCTION_ROLE                         = "remediation"
+    STORAGE_BACKEND                       = "azure_blob"
   }
   tags = local.tags
 }

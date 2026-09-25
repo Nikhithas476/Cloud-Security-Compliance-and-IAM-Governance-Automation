@@ -14,10 +14,16 @@ from cloud_security_governance.models import (
     Resource,
     Severity,
 )
-from cloud_security_governance.remediation import RemediationOutcome
+from cloud_security_governance.remediation import (
+    ApprovalRequest,
+    ApprovalStatus,
+    RemediationOutcome,
+    RemediationReview,
+)
 
 READER_TOKEN = "reader-secret-value-with-32-characters"
 OPERATOR_TOKEN = "operator-secret-value-with-32-characters"
+REVIEWER_TOKEN = "reviewer-secret-value-with-32-characters"
 
 
 def test_health_endpoint() -> None:
@@ -26,6 +32,22 @@ def test_health_endpoint() -> None:
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
     assert response.json()["version"] == "0.1.0"
+
+
+def test_production_service_factory_is_lazy_and_cached() -> None:
+    service = Mock()
+    service.list_findings.return_value = []
+    factory = Mock(return_value=service)
+    application = create_app(
+        authenticator=TokenAuthenticator(READER_TOKEN, OPERATOR_TOKEN, REVIEWER_TOKEN),
+        api_service_factory=factory,
+    )
+    client = TestClient(application)
+    assert client.get("/health").status_code == 200
+    assert factory.call_count == 0
+    assert client.get("/findings", headers=_headers(READER_TOKEN)).status_code == 200
+    assert client.get("/findings", headers=_headers(READER_TOKEN)).status_code == 200
+    factory.assert_called_once_with()
 
 
 def _finding() -> Finding:
@@ -48,7 +70,9 @@ def _finding() -> Finding:
 
 
 def _client(service: Mock) -> TestClient:
-    application = create_app(service, TokenAuthenticator(READER_TOKEN, OPERATOR_TOKEN))
+    application = create_app(
+        service, TokenAuthenticator(READER_TOKEN, OPERATOR_TOKEN, REVIEWER_TOKEN)
+    )
     return TestClient(application, raise_server_exceptions=False)
 
 
@@ -70,6 +94,51 @@ def test_authenticator_rejects_weak_or_shared_tokens() -> None:
         TokenAuthenticator("short", OPERATOR_TOKEN)
     with pytest.raises(ValueError, match="must be different"):
         TokenAuthenticator(READER_TOKEN, READER_TOKEN)
+
+
+def test_approval_api_enforces_separation_of_duties() -> None:
+    service = Mock()
+    finding_id = uuid4()
+    pending = ApprovalRequest(
+        finding_id=finding_id,
+        action="aws.test.action",
+        request_fingerprint="a" * 64,
+        requested_by="api-operator",
+    )
+    service.request_approval.return_value = RemediationReview(
+        finding_id=finding_id, action=pending.action, previous_state={}, approval=pending
+    )
+    service.approve.return_value = pending.model_copy(
+        update={
+            "status": ApprovalStatus.APPROVED,
+            "reviewed_by": "api-reviewer",
+            "reviewed_at": pending.requested_at,
+        }
+    )
+    client = _client(service)
+    created = client.post(
+        f"/approvals/{finding_id}",
+        json={"action": pending.action, "parameters": {}},
+        headers=_headers(OPERATOR_TOKEN),
+    )
+    assert created.status_code == 200
+    approval_id = created.json()["approval_id"]
+    assert (
+        client.post(
+            f"/approvals/{approval_id}/approve",
+            json={},
+            headers=_headers(OPERATOR_TOKEN),
+        ).status_code
+        == 403
+    )
+    approved = client.post(
+        f"/approvals/{approval_id}/approve",
+        json={"notes": "SEC-42"},
+        headers=_headers(REVIEWER_TOKEN),
+    )
+    assert approved.status_code == 200
+    assert approved.json()["status"] == "approved"
+    assert "request_fingerprint" not in approved.text
 
 
 def test_scan_endpoints_delegate_to_service() -> None:

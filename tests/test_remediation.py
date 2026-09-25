@@ -111,6 +111,19 @@ def test_approved_remediation_follows_full_lifecycle_and_is_one_time() -> None:
     assert replay.outcome is RemediationOutcome.NOT_APPROVED
 
 
+def test_approval_persists_and_prevents_self_approval() -> None:
+    repository = Mock()
+    first = ApprovalService(repository=repository)
+    request = first.request(finding().finding_id, "aws.test.action", {}, "requester")
+    repository.save_approval.assert_called_once_with(request)
+    repository.get_approval.return_value = request
+    second = ApprovalService(repository=repository)
+    with pytest.raises(ApprovalError, match="cannot approve"):
+        second.approve(request.approval_id, "requester")
+    approved = second.approve(request.approval_id, "independent-reviewer")
+    assert approved.status is ApprovalStatus.APPROVED
+
+
 def test_dry_run_never_executes_or_requires_approval() -> None:
     executor = FakeExecutor()
     engine = RemediationEngine(ApprovalService(), [executor])

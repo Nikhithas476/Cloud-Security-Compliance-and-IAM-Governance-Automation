@@ -7,10 +7,11 @@ import logging
 from collections.abc import Callable
 from typing import Any
 
+from cloud_security_governance.bootstrap import get_workflow_service
 from cloud_security_governance.workflow import ComplianceWorkflowService
 
 logger = logging.getLogger(__name__)
-_workflow_factory: Callable[[], ComplianceWorkflowService] | None = None
+_workflow_factory: Callable[[], ComplianceWorkflowService] = get_workflow_service
 
 
 def configure_workflow(factory: Callable[[], ComplianceWorkflowService]) -> None:
@@ -21,8 +22,6 @@ def configure_workflow(factory: Callable[[], ComplianceWorkflowService]) -> None
 def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     del event, context
     try:
-        if _workflow_factory is None:
-            raise RuntimeError("The compliance workflow is not configured")
         result = _workflow_factory().run()
         payload = {
             "scan_id": str(result.scan.scan_id),

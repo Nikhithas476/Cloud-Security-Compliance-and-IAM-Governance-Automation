@@ -15,11 +15,15 @@ def test_api_service_delegates_workflow_storage_reports_and_remediation() -> Non
     workflow.run.return_value = SimpleNamespace(
         scan=SimpleNamespace(scan_id=scan_id), reports=reports
     )
+    storage.get_reports.return_value = None
     service = GovernanceAPIService(workflow, storage, remediation)
 
     assert service.start_scan() is workflow.run.return_value
     assert service.get_reports(scan_id) == {"json": "{}", "csv": "csv", "html": "html"}
     assert service.get_reports(uuid4()) is None
+    storage.save_reports.assert_called_once_with(
+        scan_id, {"json": "{}", "csv": "csv", "html": "html"}
+    )
 
     service.get_scan(scan_id)
     service.list_findings(provider=CloudProvider.AWS, status=FindingStatus.OPEN, limit=5)

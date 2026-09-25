@@ -14,6 +14,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 class Role(StrEnum):
     READER = "reader"
     OPERATOR = "operator"
+    REVIEWER = "reviewer"
 
 
 @dataclass(frozen=True)
@@ -25,14 +26,22 @@ class Principal:
 class TokenAuthenticator:
     """Authenticate opaque tokens sourced only from deployment secrets."""
 
-    def __init__(self, reader_token: str | None = None, operator_token: str | None = None) -> None:
+    def __init__(
+        self,
+        reader_token: str | None = None,
+        operator_token: str | None = None,
+        reviewer_token: str | None = None,
+    ) -> None:
         resolved_reader = reader_token or os.getenv("API_READER_TOKEN")
         resolved_operator = operator_token or os.getenv("API_OPERATOR_TOKEN")
-        configured = [token for token in (resolved_reader, resolved_operator) if token]
+        resolved_reviewer = reviewer_token or os.getenv("API_REVIEWER_TOKEN")
+        configured = [
+            token for token in (resolved_reader, resolved_operator, resolved_reviewer) if token
+        ]
         if any(len(token) < 32 for token in configured):
             raise ValueError("API tokens must contain at least 32 characters")
-        if resolved_reader and hmac.compare_digest(resolved_reader, resolved_operator or ""):
-            raise ValueError("Reader and operator API tokens must be different")
+        if len(configured) != len(set(configured)):
+            raise ValueError("API role tokens must be different")
         self._tokens = tuple(
             item
             for item in (
@@ -43,6 +52,10 @@ class TokenAuthenticator:
                 (
                     resolved_operator,
                     Principal("api-operator", Role.OPERATOR),
+                ),
+                (
+                    resolved_reviewer,
+                    Principal("api-reviewer", Role.REVIEWER),
                 ),
             )
             if item[0]

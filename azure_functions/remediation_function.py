@@ -7,11 +7,12 @@ from collections.abc import Callable
 from typing import Any
 from uuid import UUID
 
+from cloud_security_governance.bootstrap import get_remediation_engine
 from cloud_security_governance.models import Finding
 from cloud_security_governance.remediation import RemediationEngine
 
 logger = logging.getLogger(__name__)
-_engine_factory: Callable[[], RemediationEngine] | None = None
+_engine_factory: Callable[[], RemediationEngine] = get_remediation_engine
 
 
 def configure_engine(factory: Callable[[], RemediationEngine]) -> None:
@@ -21,8 +22,6 @@ def configure_engine(factory: Callable[[], RemediationEngine]) -> None:
 
 def main(request: Any) -> dict[str, Any]:
     try:
-        if _engine_factory is None:
-            raise RuntimeError("The remediation engine is not configured")
         body = request.get_json() if hasattr(request, "get_json") else request
         if not isinstance(body, dict):
             raise TypeError("Request body must be a JSON object")

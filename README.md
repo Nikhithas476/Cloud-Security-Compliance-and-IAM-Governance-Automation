@@ -21,6 +21,7 @@ python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
 $env:API_READER_TOKEN = "generate-a-distinct-random-value-at-least-32-characters"
 $env:API_OPERATOR_TOKEN = "generate-another-random-value-at-least-32-characters"
+$env:API_REVIEWER_TOKEN = "generate-an-independent-random-value-at-least-32-characters"
 uvicorn cloud_security_governance.main:app --app-dir src --host 127.0.0.1 --port 8000
 ```
 
@@ -45,6 +46,10 @@ offline demonstration writes sanitized artifacts to ignored `demo-output/`.
 - [Compliance rules](docs/compliance-rules.md), [risk](docs/risk-scoring.md) and [remediation](docs/remediation.md)
 - [REST API](docs/api.md), [deployment](infrastructure/README.md) and [portfolio demo](docs/portfolio-demo.md)
 - [DynamoDB schema](docs/dynamodb-schema.md) and [secret hygiene](SECURITY.md)
+
+Production startup lazily composes scanners, persistent storage, reporting, alerts and remediation.
+Set `CLOUD_PROVIDERS=aws`, `azure`, or `aws,azure`, and choose `STORAGE_BACKEND=dynamodb` or
+`azure_blob`. Azure Blob uses `DefaultAzureCredential` with `AZURE_STORAGE_ACCOUNT_URL`.
 
 ## Safety
 
